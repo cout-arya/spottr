@@ -49,14 +49,25 @@ const Chat = () => {
 
     // Message Listener
     useEffect(() => {
-        socket.on('message received', (newMessageRecieved) => {
+        if (!socket) return;
+
+        const handleMessageReceived = (newMessageRecieved) => {
             if (!selectedChatCompare || selectedChatCompare !== newMessageRecieved.matchId) {
-                // TODO: Update unread count in matches list
+                // Optional: Notification sound or badge
             } else {
-                setMessages(prev => [...prev, newMessageRecieved]);
-                scrollToBottom();
+                setMessages(prev => {
+                    if (prev.some(m => m._id === newMessageRecieved._id)) return prev;
+                    return [...prev, newMessageRecieved];
+                });
+                setTimeout(scrollToBottom, 100);
             }
-        });
+        };
+
+        socket.on('message received', handleMessageReceived);
+
+        return () => {
+            socket.off('message received', handleMessageReceived);
+        };
     }, []);
 
     const fetchMatches = async () => {
@@ -85,14 +96,21 @@ const Chat = () => {
         if (newMessage && activeMatch) {
             try {
                 const config = { headers: { Authorization: `Bearer ${user.token}` } };
+                const contentToSend = newMessage; // Capture before clear
                 setNewMessage('');
-                const { data } = await axios.post(`http://localhost:5000/api/chat/${activeMatch._id}`, { content: newMessage }, config);
 
-                socket.emit('new message', data);
-                setMessages([...messages, data]);
+                const { data } = await axios.post(`http://localhost:5000/api/chat/${activeMatch._id}`, { content: contentToSend }, config);
+
+                // No manual socket emit needed (Server handles it)
+                // We add to state immediately for responsiveness, BUT check for duplicates (race condition with socket)
+                setMessages(prev => {
+                    if (prev.some(m => m._id === data._id)) return prev;
+                    return [...prev, data];
+                });
                 scrollToBottom();
             } catch (error) {
                 console.error(error);
+                toast.error("Failed to send message");
             }
         }
     };
@@ -133,7 +151,7 @@ const Chat = () => {
                     {matches.length === 0 ? (
                         <div className="p-8 text-center text-gray-500">
                             <p>No matches yet.</p>
-                            <p className="text-xs mt-2">Start swiping to find new gym buddies!</p>
+                            <p className="text-xs mt-2">Start swiping to find new Spottrs!</p>
                         </div>
                     ) : (
                         matches.map(match => {
@@ -208,8 +226,8 @@ const Chat = () => {
                                 return (
                                     <div key={i} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                                         <div className={`max-w-[70%] px-5 py-3 rounded-2xl ${isMe
-                                                ? 'bg-primary text-dark font-medium rounded-tr-none shadow-[0_4px_15px_rgba(37,244,92,0.2)]'
-                                                : 'bg-gray-800 text-gray-200 rounded-tl-none border border-gray-700'
+                                            ? 'bg-primary text-dark font-medium rounded-tr-none shadow-[0_4px_15px_rgba(37,244,92,0.2)]'
+                                            : 'bg-gray-800 text-gray-200 rounded-tl-none border border-gray-700'
                                             }`}>
                                             <p>{m.content}</p>
                                             <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-green-900' : 'text-gray-500'}`}>

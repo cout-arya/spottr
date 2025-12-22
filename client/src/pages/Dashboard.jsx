@@ -105,7 +105,7 @@ const Dashboard = () => {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <span className="text-primary text-xs font-bold tracking-[0.2em] uppercase animate-pulse">
-              ✨ AI GymSync
+              ✨ Spottr AI
             </span>
           </div>
           <h1 className="text-6xl font-black text-white mb-2 tracking-tighter">

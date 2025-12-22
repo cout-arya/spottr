@@ -4,8 +4,15 @@ import { FaMapMarkerAlt, FaRunning, FaClock, FaTrophy, FaInfo } from 'react-icon
 
 const SwipeCard = ({ user, onSwipe, onInfoClick }) => {
     const x = useMotionValue(0);
-    const rotate = useTransform(x, [-200, 200], [-15, 15]);
+    const rotate = useTransform(x, [-200, 200], [-25, 25]);
     const opacity = useTransform(x, [-200, -100, 0, 100, 200], [0, 1, 1, 1, 0]);
+
+    // Dynamic Overlay Opacities
+    const likeOpacity = useTransform(x, [10, 150], [0, 0.5]);
+    const nopeOpacity = useTransform(x, [-10, -150], [0, 0.5]);
+
+    // Scale effect creates a "lifting" feel during swipe
+    const scale = useTransform(x, [-200, 0, 200], [1.05, 1, 1.05]);
 
     const handleDragEnd = (_, info) => {
         if (info.offset.x > 100) {
@@ -22,15 +29,21 @@ const SwipeCard = ({ user, onSwipe, onInfoClick }) => {
         matchPercentage = 94
     } = user || {};
 
-    const bgImage = profile.photos?.[0] || 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1470&auto=format&fit=crop';
+    const hasPhoto = profile.photos && profile.photos.length > 0;
 
     const [isDragging, setIsDragging] = useState(false);
 
     return (
         <motion.div
-            style={{ x, rotate, opacity }}
+            style={{ x, rotate, opacity, scale }}
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.6}
+            whileTap={{ cursor: "grabbing" }}
+            initial={{ scale: 0.95, opacity: 0, y: 100 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.5, opacity: 0, transition: { duration: 0.2 } }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
             onDragStart={() => setIsDragging(true)}
             onDragEnd={(e, info) => {
                 setTimeout(() => setIsDragging(false), 100);
@@ -43,12 +56,31 @@ const SwipeCard = ({ user, onSwipe, onInfoClick }) => {
                 }
             }}
         >
-            <div className="relative w-full h-full rounded-[32px] overflow-hidden shadow-2xl bg-gray-900 border border-gray-800 select-none pointer-events-auto">
-                {/* Background Image */}
-                <div
-                    className="absolute inset-0 bg-cover bg-center transition-transform duration-700 hover:scale-105"
-                    style={{ backgroundImage: `url(${bgImage})` }}
-                />
+            <div className="relative w-full h-full rounded-[32px] overflow-hidden shadow-2xl bg-gray-900 border border-gray-800 select-none pointer-events-auto group">
+
+                {/* Visual Overlays for Swipe Feedback */}
+                <motion.div style={{ opacity: likeOpacity }} className="absolute inset-0 bg-green-500 z-30 pointer-events-none mix-blend-overlay" />
+                <motion.div style={{ opacity: nopeOpacity }} className="absolute inset-0 bg-red-500 z-30 pointer-events-none mix-blend-overlay" />
+
+                {/* LIKE / NOPE Stamps */}
+                <motion.div style={{ opacity: likeOpacity }} className="absolute top-10 left-10 z-40 border-4 border-green-500 rounded-lg px-4 py-2 -rotate-12">
+                    <span className="text-green-500 font-black text-4xl uppercase tracking-widest">Like</span>
+                </motion.div>
+                <motion.div style={{ opacity: nopeOpacity }} className="absolute top-10 right-10 z-40 border-4 border-red-500 rounded-lg px-4 py-2 rotate-12">
+                    <span className="text-red-500 font-black text-4xl uppercase tracking-widest">Nope</span>
+                </motion.div>
+
+                {/* Background Image or Fallback */}
+                {hasPhoto ? (
+                    <div
+                        className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+                        style={{ backgroundImage: `url(${profile.photos[0]})` }}
+                    />
+                ) : (
+                    <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
+                        <FaRunning className="text-gray-800 text-9xl opacity-20 scale-150" />
+                    </div>
+                )}
 
                 {/* Simplified Gradients for Depth */}
                 <div className="absolute top-0 w-full h-32 bg-gradient-to-b from-black/60 to-transparent" />
@@ -82,7 +114,7 @@ const SwipeCard = ({ user, onSwipe, onInfoClick }) => {
                             </h2>
                             <div className="flex items-center gap-2 text-gray-300 text-sm font-bold mt-2 uppercase tracking-wide">
                                 <FaMapMarkerAlt className="text-primary" size={12} />
-                                <span>{profile.city || 'GymSync Member'}</span>
+                                <span>{profile.city || 'Spottr Member'}</span>
                             </div>
                         </div>
                     </div>

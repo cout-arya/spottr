@@ -60,6 +60,8 @@ const swipe = asyncHandler(async (req, res) => {
     let isMatch = false;
 
     if (type === 'like') {
+        const io = req.app.get('io');
+
         // Check for mutual like
         const mutualLike = await Interaction.findOne({
             actorId: targetId,
@@ -69,10 +71,46 @@ const swipe = asyncHandler(async (req, res) => {
 
         if (mutualLike) {
             isMatch = true;
-            await Match.create({
+            const newMatch = await Match.create({
                 users: [actorId, targetId]
             });
-            // Here you would trigger notification or Socket event
+
+            // Notify both users in real-time
+
+            // Fetch names/photos to send inside notification
+            const actor = await User.findById(actorId).select('name profile.photos');
+            const target = await User.findById(targetId).select('name profile.photos');
+
+            if (io) {
+                // Notify Actor (Current User)
+                io.to(actorId.toString()).emit('match found', {
+                    matchId: newMatch._id,
+                    friend: {
+                        _id: target._id,
+                        name: target.name,
+                        photo: target.profile.photos?.[0]
+                    }
+                });
+
+                // Notify Target (The other person)
+                io.to(targetId.toString()).emit('match found', {
+                    matchId: newMatch._id,
+                    friend: {
+                        _id: actor._id,
+                        name: actor.name,
+                        photo: actor.profile.photos?.[0]
+                    }
+                });
+            }
+        } else {
+            // It's a one-way like (so far). Notify the target that someone liked them.
+            if (io) {
+                // Fetch actor name for the notification
+                const actor = await User.findById(actorId).select('name');
+                io.to(targetId.toString()).emit('like received', {
+                    admirerName: actor.name
+                });
+            }
         }
     }
 

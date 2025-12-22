@@ -23,7 +23,7 @@ const Sidebar = () => {
                     <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center transform rotate-12">
                         <div className="w-4 h-4 bg-dark rounded-full"></div>
                     </div>
-                    <h1 className="text-2xl font-bold text-white tracking-wide">GymSync</h1>
+                    <h1 className="text-2xl font-bold text-white tracking-wide">Spottr</h1>
                 </NavLink>
 
                 {/* Navigation */}

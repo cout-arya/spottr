@@ -34,11 +34,17 @@ const ProfileModal = ({ user, onClose }) => {
 
                     {/* LEFT COLUMN: Immersive Visuals (45%) */}
                     <div className="w-full md:w-[45%] h-[40vh] md:h-full relative shrink-0">
-                        <img
-                            src={profile.photos?.[0] || 'https://via.placeholder.com/800x1200'}
-                            alt={user.name}
-                            className="w-full h-full object-cover"
-                        />
+                        {profile.photos?.[0] ? (
+                            <img
+                                src={profile.photos[0]}
+                                alt={user.name}
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <div className="w-full h-full bg-gray-900 flex items-center justify-center">
+                                <FaDumbbell className="text-gray-800 text-9xl opacity-20" />
+                            </div>
+                        )}
                         <div className="absolute inset-0 bg-gradient-to-t from-[#0F0F0F] via-transparent to-black/30 md:bg-gradient-to-r md:from-transparent md:via-transparent md:to-[#0F0F0F]" />
 
                         {/* Mobile Overlay */}

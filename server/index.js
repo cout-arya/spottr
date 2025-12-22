@@ -37,6 +37,8 @@ const io = require('socket.io')(server, {
     }
 });
 
+app.set('io', io);
+
 io.on('connection', (socket) => {
     console.log('Connected to socket.io');
 
@@ -51,16 +53,8 @@ io.on('connection', (socket) => {
         console.log('User Joined Room: ' + room);
     });
 
-    socket.on('new message', (newMessageRecieved) => {
-        var chat = newMessageRecieved.matchId; // Assuming matchId is the room
-
-        if (!chat) return console.log('chat.users not defined');
-
-        // In a real app we'd iterate users and emit, but here simple room emit
-        // socket.in(chat).emit('message received', newMessageRecieved);
-        // Actually simpler: 
-        socket.to(newMessageRecieved.matchId).emit('message received', newMessageRecieved);
-    });
+    socket.on('typing', (room) => socket.in(room).emit('typing'));
+    socket.on('stop typing', (room) => socket.in(room).emit('stop typing'));
 });
 
 // Server is running (Restart Triggered v2)

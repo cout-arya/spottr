@@ -56,6 +56,12 @@ const sendMessage = asyncHandler(async (req, res) => {
 
     const fullMessage = await Message.findById(message._id).populate('senderId', 'name profile.photos');
 
+    // Real-time Socket Emission
+    const io = req.app.get('io');
+    if (io) {
+        io.to(matchId).emit('message received', fullMessage);
+    }
+
     res.json(fullMessage);
 });
 
