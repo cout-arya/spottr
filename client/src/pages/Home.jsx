@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import { AnimatePresence, motion } from "framer-motion";
@@ -17,6 +18,7 @@ import {
 
 const Home = () => {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [candidates, setCandidates] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [showModal, setShowModal] = useState(false);
@@ -28,6 +30,7 @@ const Home = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [searchResults, setSearchResults] = useState([]);
     const [matches, setMatches] = useState([]);
+    const [likeNotifications, setLikeNotifications] = useState([]);
 
     // Socket Real-time Match Listener
     useEffect(() => {
@@ -79,6 +82,8 @@ const Home = () => {
 
         socket.on('like received', (data) => {
             // Simpler notification for incoming likes
+            setLikeNotifications(prev => [...prev, { _id: Date.now(), ...data, type: 'like' }]);
+
             toast(`${data.admirerName} liked your profile!`, {
                 icon: '👀',
                 style: {
@@ -128,6 +133,7 @@ const Home = () => {
             );
             setCandidates(data);
         } catch (error) {
+            if (error.response?.status === 401) return;
             console.error(error);
         }
     };
@@ -147,6 +153,7 @@ const Home = () => {
             });
             setMatches(processedMatches);
         } catch (error) {
+            if (error.response?.status === 401) return;
             console.error("Error fetching matches", error);
         }
     };
@@ -160,6 +167,7 @@ const Home = () => {
             );
             setSearchResults(data);
         } catch (error) {
+            if (error.response?.status === 401) return;
             console.error(error);
         }
     };
@@ -222,7 +230,7 @@ const Home = () => {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-gray-900/40 via-black to-black pointer-events-none"></div>
 
             {/* Top Bar */}
-            <div className="w-full h-20 px-6 flex justify-between items-center z-40 bg-gradient-to-b from-black via-black/80 to-transparent">
+            <div className="w-full h-20 px-6 flex justify-between items-center relative z-40 bg-gradient-to-b from-black via-black/80 to-transparent">
                 {/* Logo/Context */}
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gray-900 rounded-full flex items-center justify-center border border-gray-800">
@@ -258,10 +266,10 @@ const Home = () => {
                             setShowNotifs(!showNotifs);
                             setShowSearch(false);
                         }}
-                        className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 relative ${showNotifs ? "bg-primary text-black" : "bg-gray-900/80 text-white border border-gray-800 hover:border-gray-600"}`}
+                        className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 relative z-50 ${showNotifs ? "bg-white text-black" : "bg-gray-900/80 text-white border border-gray-800 hover:border-gray-600"}`}
                     >
                         <FaBell className="text-lg" />
-                        {matches.length > 0 && !showNotifs && (
+                        {(matches.length > 0 || likeNotifications.length > 0) && !showNotifs && (
                             <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border border-black animate-ping"></span>
                         )}
                     </button>
@@ -346,6 +354,27 @@ const Home = () => {
                             <span className="text-primary">({matches.length})</span>
                         </h2>
                         <div className="space-y-4">
+                            {/* Likes Section */}
+                            {likeNotifications.length > 0 && (
+                                <div className="mb-6">
+                                    <h3 className="text-gray-400 font-bold text-xs uppercase tracking-widest mb-3">New Likes</h3>
+                                    <div className="space-y-3">
+                                        {likeNotifications.map((notif) => (
+                                            <div key={notif._id} className="flex items-center gap-4 p-4 rounded-2xl bg-gray-900 border border-gray-800">
+                                                <div className="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center text-xl">
+                                                    👀
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-white font-bold">{notif.admirerName}</h3>
+                                                    <p className="text-gray-500 text-xs">Liked your profile</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <h3 className="text-gray-400 font-bold text-xs uppercase tracking-widest mb-3">Matches ({matches.length})</h3>
                             {matches.length > 0 ? (
                                 matches.map((match) => (
                                     <div
@@ -373,7 +402,10 @@ const Home = () => {
                                                 <FaHeart /> Confirmed Match
                                             </p>
                                         </div>
-                                        <button className="ml-auto px-4 py-2 bg-gray-800 rounded-xl text-white text-xs font-bold hover:bg-gray-700">
+                                        <button
+                                            onClick={() => navigate(`/chat/${match._id}`)}
+                                            className="ml-auto px-4 py-2 bg-gray-800 rounded-xl text-white text-xs font-bold hover:bg-gray-700"
+                                        >
                                             Chat
                                         </button>
                                     </div>

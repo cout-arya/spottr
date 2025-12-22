@@ -15,6 +15,19 @@ export const AuthProvider = ({ children }) => {
             setUser(userInfo);
         }
         setLoading(false);
+
+        // Global 401 Interceptor
+        const interceptor = axios.interceptors.response.use(
+            (response) => response,
+            (error) => {
+                if (error.response && error.response.status === 401) {
+                    logout(); // Auto-logout on unauthorized
+                }
+                return Promise.reject(error);
+            }
+        );
+
+        return () => axios.interceptors.response.eject(interceptor);
     }, []);
 
     const login = async (email, password) => {

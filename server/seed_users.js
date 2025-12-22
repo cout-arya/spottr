@@ -132,20 +132,23 @@ const seedUsers = async () => {
         console.log('MongoDB Connected');
 
         // Clean up existing test users first
-        await User.deleteMany({ email: { $in: users.map(u => u.email) } });
+        // Clean up all existing users for a fresh start
+        await User.deleteMany({});
         console.log('Cleaned old test users');
 
         // Check if users already exist to avoid dupes (by email) - actually we just deleted them so create fresh
         for (const user of users) {
             // Note: User model pre-save hook handles hashing
-            await User.create(user);
+            // We verify this by logging
+            const newUser = new User(user);
+            await newUser.save();
             console.log(`Created user: ${user.name}`);
         }
 
         console.log('Seeding complete!');
         process.exit();
     } catch (error) {
-        console.error('Error seeding users:', error);
+        console.error('Error seeding users:', JSON.stringify(error, null, 2));
         process.exit(1);
     }
 };

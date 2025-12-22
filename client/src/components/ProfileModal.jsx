@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTimes, FaMapMarkerAlt, FaDumbbell, FaRulerCombined, FaFire, FaBed, FaBeer, FaSmoking, FaBrain, FaVenusMars, FaBullseye, FaHistory, FaCalendarAlt } from 'react-icons/fa';
 
@@ -7,13 +8,13 @@ const ProfileModal = ({ user, onClose }) => {
     const { profile } = user;
     const matchPercentage = user.matchPercentage || 95; // Default if not passed
 
-    return (
+    return createPortal(
         <AnimatePresence>
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-4 bg-black/95 backdrop-blur-xl"
+                className="fixed inset-0 z-[9999] flex items-center justify-center p-0 md:p-4 bg-black/95 backdrop-blur-xl"
                 onClick={onClose}
             >
                 <motion.div
@@ -169,7 +170,8 @@ const ProfileModal = ({ user, onClose }) => {
                     </div>
                 </motion.div>
             </motion.div>
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 };
 

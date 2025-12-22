@@ -27,9 +27,9 @@ const UserSchema = new mongoose.Schema({
         // Enhanced Attributes
         experienceYears: Number,
         benchmarks: {
-            squat: { type: Number, default: 0 },
-            bench: { type: Number, default: 0 },
-            deadlift: { type: Number, default: 0 }
+            squat: { type: String, default: 'None' },
+            bench: { type: String, default: 'None' },
+            deadlift: { type: String, default: 'None' }
         },
         commitment: { type: String, enum: ['Casual', 'Consistent', 'Hardcore'] },
         lifestyle: {
@@ -62,6 +62,7 @@ UserSchema.pre('save', async function (next) {
     if (!this.isModified('password')) {
         next();
     }
+    // console.log(`Hashing password for ${this.email}`); // Debug log
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
 });

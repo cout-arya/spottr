@@ -1,5 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
+const { calculateCompatibilityScore } = require('../utils/matchmaker');
 
 // @desc    Get user profile
 // @route   GET /api/users/profile
@@ -106,10 +107,19 @@ const searchUsers = asyncHandler(async (req, res) => {
         : {};
 
     // Exclude current user from search
+    // Exclude current user from search
     const users = await User.find({ ...keyword, _id: { $ne: req.user._id } })
         .limit(20);
 
-    res.json(users);
+    const usersWithScore = users.map(user => {
+        const score = calculateCompatibilityScore(req.user, user);
+        return {
+            ...user.toObject(),
+            matchPercentage: score
+        };
+    });
+
+    res.json(usersWithScore);
 });
 
 module.exports = { getUserProfile, updateUserProfile, searchUsers };
