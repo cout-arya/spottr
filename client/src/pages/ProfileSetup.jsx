@@ -114,7 +114,7 @@ const ProfileSetup = () => {
                 payload.benchmarks.deadlift = Number(payload.benchmarks.deadlift) || 0;
             }
 
-            const { data } = await axios.put('http://localhost:5000/api/users/profile', { profile: payload }, config);
+            const { data } = await axios.put('/users/profile', { profile: payload }, config);
 
             const userInfo = JSON.parse(localStorage.getItem('userInfo')) || {};
             userInfo.profile = data.profile;

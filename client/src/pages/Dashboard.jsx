@@ -28,7 +28,7 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const userRes = await axios.get("http://localhost:5000/api/users/profile", config);
+      const userRes = await axios.get("/users/profile", config);
       setStats(userRes.data.gamification || { xp: 0, level: 1, streak: 0, badges: [] });
       setProfile(userRes.data.profile);
       setPlans(userRes.data.plans);
@@ -42,7 +42,7 @@ const Dashboard = () => {
   const fetchLeaderboard = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.get("http://localhost:5000/api/gamification/leaderboard", config);
+      const { data } = await axios.get("/gamification/leaderboard", config);
       setLeaderboard(data);
     } catch (error) {
       console.error("Error fetching leaderboard", error);
@@ -59,7 +59,7 @@ const Dashboard = () => {
 
       // 1. Analyze with AI
       const analyzeRes = await axios.post(
-        "http://localhost:5000/api/ai/analyze-log",
+        "/ai/analyze-log",
         { text: logInput },
         config
       );
@@ -68,7 +68,7 @@ const Dashboard = () => {
 
       // 2. Commit Log
       const logRes = await axios.post(
-        "http://localhost:5000/api/gamification/log",
+        "/gamification/log",
         {
           type: analysis.type,
           xpOverride: analysis.xp,
@@ -113,7 +113,7 @@ const Dashboard = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const { data } = await axios.post(
-        "http://localhost:5000/api/ai/generate-diet",
+        "/ai/generate-diet",
         {},
         config,
       );

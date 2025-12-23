@@ -5,7 +5,7 @@ import axios from 'axios';
 import io from 'socket.io-client';
 import { FaPaperPlane, FaCircle, FaArrowLeft, FaSearch } from 'react-icons/fa';
 
-const ENDPOINT = 'http://localhost:5000';
+const ENDPOINT = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 var socket, selectedChatCompare;
 
 const Chat = () => {

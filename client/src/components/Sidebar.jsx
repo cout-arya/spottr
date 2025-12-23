@@ -10,7 +10,7 @@ const Sidebar = () => {
     const navigate = useNavigate();
 
     const navItems = [
-        { path: '/', icon: <FaFire size={24} />, label: 'Discovery' },
+        { path: '/home', icon: <FaFire size={24} />, label: 'Discovery' },
         { path: '/dashboard', icon: <FaDumbbell size={24} />, label: 'Dashboard' },
         { path: '/messages', icon: <FaRegCommentDots size={24} />, label: 'Messages' },
     ];
@@ -19,7 +19,7 @@ const Sidebar = () => {
         <aside className="fixed left-0 top-0 h-screen w-64 bg-dark border-r border-gray-800 flex flex-col justify-between p-6 z-50">
             {/* Logo */}
             <div>
-                <NavLink to="/" className="flex items-center gap-2 mb-10 no-underline">
+                <NavLink to="/home" className="flex items-center gap-2 mb-10 no-underline">
                     <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center transform rotate-12">
                         <div className="w-4 h-4 bg-dark rounded-full"></div>
                     </div>

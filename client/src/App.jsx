@@ -31,9 +31,10 @@ function App() {
         }}
       />
       <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/demo" element={<LandingPage />} />
 
         {/* Protected Routes Wrapper */}
         <Route
@@ -43,7 +44,7 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route path="/" element={<Home />} />
+          <Route path="/home" element={<Home />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/matches" element={<Chat />} />
           <Route path="/messages" element={<Chat />} />

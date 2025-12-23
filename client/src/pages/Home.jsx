@@ -128,7 +128,7 @@ const Home = () => {
         try {
             const config = { headers: { Authorization: `Bearer ${user.token}` } };
             const { data } = await axios.get(
-                "http://localhost:5000/api/matches/recommendations",
+                "/matches/recommendations",
                 config,
             );
             setCandidates(data);
@@ -142,7 +142,7 @@ const Home = () => {
         try {
             const config = { headers: { Authorization: `Bearer ${user.token}` } };
             const { data } = await axios.get(
-                "http://localhost:5000/api/matches",
+                "/matches",
                 config,
             );
             // Filter self out of the match pairs if necessary, usually backend populates both
@@ -162,7 +162,7 @@ const Home = () => {
         try {
             const config = { headers: { Authorization: `Bearer ${user.token}` } };
             const { data } = await axios.get(
-                `http://localhost:5000/api/users/search?q=${searchTerm}`,
+                `/users/search?q=${searchTerm}`,
                 config,
             );
             setSearchResults(data);
@@ -183,7 +183,7 @@ const Home = () => {
         try {
             const config = { headers: { Authorization: `Bearer ${user.token}` } };
             const { data } = await axios.post(
-                "http://localhost:5000/api/matches/swipe",
+                "/matches/swipe",
                 { targetId: candidate._id, type },
                 config,
             );
