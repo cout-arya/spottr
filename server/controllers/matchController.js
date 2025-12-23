@@ -14,9 +14,9 @@ const getRecommendations = asyncHandler(async (req, res) => {
     interactedIds.push(currentUser._id); // Exclude self
 
     // Find potential candidates
-    // Filter by same city
+    // Filter by same city and exclude interacted users
     const filter = {
-        _id: { $ne: currentUser._id }
+        _id: { $nin: interactedIds }
     };
 
     if (currentUser.profile && currentUser.profile.city) {
@@ -41,6 +41,9 @@ const getRecommendations = asyncHandler(async (req, res) => {
 // @desc    Swipe (Like/Pass)
 // @route   POST /api/matches/swipe
 // @access  Private
+// @desc    Swipe (Like/Pass)
+// @route   POST /api/matches/swipe
+// @access  Private
 const swipe = asyncHandler(async (req, res) => {
     const { targetId, type } = req.body;
     const actorId = req.user._id;
@@ -50,8 +53,8 @@ const swipe = asyncHandler(async (req, res) => {
         throw new Error('Missing targetId or type');
     }
 
-    // Record interaction (Upsert to allow changing mind or re-swiping in demo)
-    const interaction = await Interaction.findOneAndUpdate(
+    // Record interaction
+    await Interaction.findOneAndUpdate(
         { actorId, targetId },
         { type },
         { upsert: true, new: true }
@@ -70,46 +73,37 @@ const swipe = asyncHandler(async (req, res) => {
         });
 
         if (mutualLike) {
-            isMatch = true;
-            const newMatch = await Match.create({
-                users: [actorId, targetId]
+            // Check if match already exists to prevent duplicates
+            const existingMatch = await Match.findOne({
+                users: { $all: [actorId, targetId] }
             });
 
-            // Notify both users in real-time
-
-            // Fetch names/photos to send inside notification
-            const actor = await User.findById(actorId).select('name profile.photos');
-            const target = await User.findById(targetId).select('name profile.photos');
-
-            if (io) {
-                // Notify Actor (Current User)
-                io.to(actorId.toString()).emit('match found', {
-                    matchId: newMatch._id,
-                    friend: {
-                        _id: target._id,
-                        name: target.name,
-                        photo: target.profile.photos?.[0]
-                    }
+            if (!existingMatch) {
+                isMatch = true;
+                const newMatch = await Match.create({
+                    users: [actorId, targetId]
                 });
 
-                // Notify Target (The other person)
-                io.to(targetId.toString()).emit('match found', {
-                    matchId: newMatch._id,
-                    friend: {
-                        _id: actor._id,
-                        name: actor.name,
-                        photo: actor.profile.photos?.[0]
-                    }
-                });
+                // Notify both users
+                const actor = await User.findById(actorId).select('name profile.photos');
+                const target = await User.findById(targetId).select('name profile.photos');
+
+                if (io) {
+                    io.to(actorId.toString()).emit('match found', {
+                        matchId: newMatch._id,
+                        friend: { _id: target._id, name: target.name, photo: target.profile.photos?.[0] }
+                    });
+                    io.to(targetId.toString()).emit('match found', {
+                        matchId: newMatch._id,
+                        friend: { _id: actor._id, name: actor.name, photo: actor.profile.photos?.[0] }
+                    });
+                }
             }
         } else {
-            // It's a one-way like (so far). Notify the target that someone liked them.
+            // One-way like notification
             if (io) {
-                // Fetch actor name for the notification
                 const actor = await User.findById(actorId).select('name');
-                io.to(targetId.toString()).emit('like received', {
-                    admirerName: actor.name
-                });
+                io.to(targetId.toString()).emit('like received', { admirerName: actor.name });
             }
         }
     }
