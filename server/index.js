@@ -4,7 +4,7 @@ const cors = require('cors');
 const connectDB = require('./config/db');
 
 dotenv.config(); // Load env vars
-// Force Restart Trigger
+// Force Restart Trigger v2
 
 connectDB();
 
@@ -57,7 +57,7 @@ io.on('connection', (socket) => {
     socket.on('stop typing', (room) => socket.in(room).emit('stop typing'));
 });
 
-// Server is running (Restart Triggered v2)
+// Server is running (Restart Triggered v3)
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

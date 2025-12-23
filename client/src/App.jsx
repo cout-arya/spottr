@@ -2,11 +2,12 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import { useAuth } from './context/AuthContext';
-import Home from './pages/Home'; // To be implemented
-import ProfileSetup from './pages/ProfileSetup'; // To be implemented
-import Chat from './pages/Chat'; // To be implemented
+import Home from './pages/Home';
+import ProfileSetup from './pages/ProfileSetup';
+import Chat from './pages/Chat';
 import MainLayout from './layouts/MainLayout';
 import Dashboard from './pages/Dashboard';
+import LandingPage from './pages/LandingPage';
 import { Toaster } from 'react-hot-toast';
 
 // Protected Route Component
@@ -32,6 +33,7 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/demo" element={<LandingPage />} />
 
         {/* Protected Routes Wrapper */}
         <Route

@@ -20,42 +20,56 @@ const Login = () => {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center h-screen bg-dark">
-            <div className="w-full max-w-md p-8 bg-gray-900 rounded-lg shadow-lg">
-                <h2 className="mb-6 text-3xl font-bold text-center text-primary">Login</h2>
-                {error && <div className="p-2 mb-4 text-white bg-red-500 rounded">{error}</div>}
-                <form onSubmit={submitHandler}>
-                    <div className="mb-4">
-                        <label className="block mb-2 text-sm font-bold text-gray-400">Email Address</label>
+        <div className="flex flex-col items-center justify-center min-h-screen bg-black relative overflow-hidden">
+            {/* Background Decoration */}
+            <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] pointer-events-none animate-pulse-slow"></div>
+            <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+            <div className="w-full max-w-md p-8 bg-gray-900/40 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl relative z-10">
+                <div className="text-center mb-10">
+                    <h2 className="text-4xl font-black text-white tracking-tighter mb-2">Welcome Back</h2>
+                    <p className="text-gray-400 text-sm font-medium">Enter your credentials to access your dashboard</p>
+                </div>
+
+                {error && (
+                    <div className="p-4 mb-6 text-sm font-bold text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-2">
+                        <span>⚠️</span> {error}
+                    </div>
+                )}
+
+                <form onSubmit={submitHandler} className="space-y-6">
+                    <div>
+                        <label className="block mb-2 text-xs font-bold text-gray-500 uppercase tracking-widest">Email Address</label>
                         <input
                             type="email"
-                            className="w-full p-3 text-white bg-gray-800 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                            className="w-full p-4 text-white bg-black/40 border border-gray-700 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all font-medium placeholder-gray-600"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            placeholder="Enter email"
+                            placeholder="name@example.com"
                         />
                     </div>
-                    <div className="mb-6">
-                        <label className="block mb-2 text-sm font-bold text-gray-400">Password</label>
+                    <div>
+                        <label className="block mb-2 text-xs font-bold text-gray-500 uppercase tracking-widest">Password</label>
                         <input
                             type="password"
-                            className="w-full p-3 text-white bg-gray-800 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                            className="w-full p-4 text-white bg-black/40 border border-gray-700 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all font-medium placeholder-gray-600"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Enter password"
+                            placeholder="••••••••"
                         />
                     </div>
                     <button
                         type="submit"
-                        className="w-full p-3 font-bold text-white transition rounded bg-gradient-to-r from-primary to-secondary hover:opacity-90"
+                        className="w-full p-4 mt-2 font-black text-black bg-gradient-to-r from-[#25F45C] to-[#1ee350] rounded-xl hover:shadow-[0_0_20px_rgba(37,244,92,0.4)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 uppercase tracking-wide text-sm"
                     >
                         Sign In
                     </button>
                 </form>
-                <div className="mt-4 text-center">
-                    <span className="text-gray-400">New Customer? </span>
-                    <Link to="/register" className="font-bold text-primary hover:underline">
-                        Register
+
+                <div className="mt-8 text-center border-t border-gray-800 pt-6">
+                    <span className="text-gray-500 text-sm">Don't have an account? </span>
+                    <Link to="/register" className="font-bold text-primary hover:text-white transition-colors ml-1">
+                        Create Account
                     </Link>
                 </div>
             </div>

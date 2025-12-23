@@ -43,7 +43,12 @@ const UserSchema = new mongoose.Schema({
         xp: { type: Number, default: 0 },
         level: { type: Number, default: 1 },
         streak: { type: Number, default: 0 },
-        badges: [String]
+        badges: [String],
+        lastActivity: { type: Date, default: Date.now }
+    },
+    plans: {
+        diet: { type: mongoose.Schema.Types.Mixed },
+        workout: { type: mongoose.Schema.Types.Mixed }
     },
     preferences: {
         gender: String,

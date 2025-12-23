@@ -15,6 +15,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
             email: user.email,
             profile: user.profile,
             gamification: user.gamification,
+            plans: user.plans,
             preferences: user.preferences
         });
     } else {
