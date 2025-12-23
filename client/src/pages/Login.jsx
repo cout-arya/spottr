@@ -1,19 +1,26 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 
 const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const { login } = useAuth();
+    const { login, user } = useAuth(); // Consolidated destructuring
     const navigate = useNavigate();
     const [error, setError] = useState('');
+
+    // Redirect if already logged in
+    useEffect(() => {
+        if (user) {
+            navigate('/home', { replace: true });
+        }
+    }, [user, navigate]);
 
     const submitHandler = async (e) => {
         e.preventDefault();
         try {
             await login(email, password);
-            navigate('/home');
+            navigate('/home', { replace: true });
         } catch (err) {
             setError(err.response?.data?.message || err.message);
         }

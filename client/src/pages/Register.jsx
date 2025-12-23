@@ -19,7 +19,7 @@ const Register = () => {
         } else {
             try {
                 await register(name, email, password);
-                navigate('/profile-setup');
+                navigate('/profile-setup', { replace: true });
             } catch (err) {
                 setError(err.response?.data?.message || err.message);
             }
