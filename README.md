@@ -23,7 +23,7 @@
 
 ## 📸 Demo
 
-![Dashboard Demo](docs/images/dashboard_demo.webp)
+![Spottr App Showcase](docs/images/latest_showcase.png)
 
 ## ⚙️ Prerequisites
 
