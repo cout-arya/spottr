@@ -44,6 +44,14 @@ const updateUserProfile = asyncHandler(async (req, res) => {
             if (req.body.profile.goals) {
                 user.profile.goals = req.body.profile.goals;
             }
+
+            // Explicitly handle benchmarks since it is a nested object
+            if (req.body.profile.benchmarks) {
+                user.profile.benchmarks = {
+                    ...user.profile.benchmarks,
+                    ...req.body.profile.benchmarks
+                };
+            }
         }
         if (req.body.preferences) {
             for (const key in req.body.preferences) {
