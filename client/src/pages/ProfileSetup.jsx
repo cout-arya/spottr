@@ -8,8 +8,9 @@ import toast from 'react-hot-toast';
 import { indianCities } from '../data/indianCities';
 
 const ProfileSetup = () => {
-    const { user, logout } = useAuth();
+    const { user, logout, updateUser } = useAuth();
     const navigate = useNavigate();
+
 
     // Initial state with defaults
     const [formData, setFormData] = useState({
@@ -116,9 +117,12 @@ const ProfileSetup = () => {
 
             const { data } = await axios.put('/users/profile', { profile: payload }, config);
 
-            const userInfo = JSON.parse(localStorage.getItem('userInfo')) || {};
-            userInfo.profile = data.profile;
-            localStorage.setItem('userInfo', JSON.stringify(userInfo));
+            // Update Global State immediately
+            // Merge returned profile into existing user object (since backend might return partial or just profile)
+            const updatedUser = { ...user, profile: data.profile };
+            if (data.token) updatedUser.token = data.token; // In case token is refreshed
+
+            updateUser(updatedUser);
 
             navigate('/dashboard');
         } catch (error) {
