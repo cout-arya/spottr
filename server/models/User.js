@@ -27,9 +27,9 @@ const UserSchema = new mongoose.Schema({
         // Enhanced Attributes
         experienceYears: Number,
         benchmarks: {
-            squat: { type: String, default: 'None' },
-            bench: { type: String, default: 'None' },
-            deadlift: { type: String, default: 'None' }
+            squat: { type: Number, default: 0 },
+            bench: { type: Number, default: 0 },
+            deadlift: { type: Number, default: 0 }
         },
         commitment: { type: String, enum: ['Casual', 'Consistent', 'Hardcore'] },
         lifestyle: {

@@ -1,5 +1,7 @@
 const axios = require('axios');
 const User = require('../models/User');
+// RAG: Import vector store for nutrition knowledge retrieval
+const vectorStore = require('../utils/vectorStore');
 
 const generateDietPlan = async (req, res) => {
     try {
@@ -18,20 +20,70 @@ const generateDietPlan = async (req, res) => {
 
         console.log('[AI] Generating diet for User:', req.user?._id);
 
+        // RAG: Construct nutrition query from user profile
+        const primaryGoal = (goals || [])[0] || 'General Fitness';
+        const nutritionQuery = `${primaryGoal} nutrition for ${gender || 'Male'} ${weight || 70}kg ${dietaryPreference || 'Non-vegetarian'}`;
+        console.log('[RAG] Query:', nutritionQuery);
+
+        // RAG: Retrieve relevant nutrition knowledge from vector database
+        let retrievedContext = '';
+        try {
+            const relevantDocs = await vectorStore.retrieveContext(nutritionQuery, 3);
+            if (relevantDocs.length > 0) {
+                retrievedContext = vectorStore.formatContextForPrompt(relevantDocs);
+                console.log(`[RAG] Retrieved ${relevantDocs.length} relevant documents`);
+            } else {
+                console.warn('[RAG] No context retrieved, proceeding without RAG');
+            }
+        } catch (ragError) {
+            console.warn('[RAG] Context retrieval failed, proceeding without:', ragError.message);
+        }
+
+        // RAG: System prompt with injected nutrition knowledge
         const systemPrompt = `You are an expert nutritionist. Create a 1-day Indian diet plan (4 meals).
-        Output ONLY valid JSON. No markdown. Structure:
-        {
-            "calories": "Total Kcal",
-            "protein": "Total Protein",
-            "macros": { "carbs": "g", "fats": "g" },
-            "meals": [
-                { "name": "Breakfast", "food": "Title", "calories": 0, "protein": 0, "suggestion": "Detail" },
-                { "name": "Lunch", "food": "Title", "calories": 0, "protein": 0, "suggestion": "Detail" },
-                { "name": "Snack", "food": "Title", "calories": 0, "protein": 0, "suggestion": "Detail" },
-                { "name": "Dinner", "food": "Title", "calories": 0, "protein": 0, "suggestion": "Detail" }
-            ],
-            "advice": "One short tip"
-        }`;
+
+${retrievedContext ? `IMPORTANT: Use ONLY the following verified nutrition guidelines to create the plan:
+
+${retrievedContext}
+
+Follow these rules strictly:
+- Base ALL recommendations on the provided nutrition guidelines above
+- Do NOT invent nutrition rules, macro targets, or calorie recommendations
+- Use the specific foods and portions mentioned in the guidelines
+- Match protein targets to the retrieved knowledge
+
+` : ''}
+MEAL VARIETY RULES:
+1. Breakfast should VARY between:
+   - Egg dishes (masala omelette, boiled eggs, egg bhurji, scrambled)
+   - Parathas (aloo paratha, paneer paratha, mooli paratha)
+   - South Indian (dosa with chutney, idli sambar, upma, poha)
+   - Smoothies/Bowls (protein smoothie with nuts, overnight oats with fruits)
+   - Avoid always suggesting roti/sabzi for breakfast
+
+2. Vary protein sources across meals:
+   - Mix between eggs, chicken, fish, paneer, dal, yogurt
+   - Use different cooking styles (grilled, boiled, sautéed, steamed)
+
+3. Consider meal timing:
+   - Breakfast: Quick-digesting carbs + protein for energy
+   - Lunch: Balanced with complex carbs and vegetables
+   - Snack: Light, protein-rich, easy to digest
+   - Dinner: Moderate carbs, high protein, lighter than lunch
+
+Output ONLY valid JSON. No markdown. Structure:
+{
+    "calories": "Total Kcal",
+    "protein": "Total Protein",
+    "macros": { "carbs": "g", "fats": "g" },
+    "meals": [
+        { "name": "Breakfast", "food": "Title", "calories": 0, "protein": 0, "suggestion": "Detail" },
+        { "name": "Lunch", "food": "Title", "calories": 0, "protein": 0, "suggestion": "Detail" },
+        { "name": "Snack", "food": "Title", "calories": 0, "protein": 0, "suggestion": "Detail" },
+        { "name": "Dinner", "food": "Title", "calories": 0, "protein": 0, "suggestion": "Detail" }
+    ],
+    "advice": "One short tip based on the guidelines"
+}`;
 
         const userPrompt = `Profile: ${age || 25}yo ${gender || 'Male'}, ${height || 170}cm, ${weight || 70}kg.
         Diet Type: ${dietaryPreference || 'Non-vegetarian'}.
@@ -100,7 +152,8 @@ const generateDietPlan = async (req, res) => {
             try {
                 content = await attemptGeneration('google/gemini-2.0-flash-exp:free');
             } catch (e) {
-                content = await attemptGeneration('mistralai/mistral-7b-instruct:free');
+                console.warn('[AI] Gemini failed, trying Llama 3.3 Free...');
+                content = await attemptGeneration('meta-llama/llama-3.3-70b-instruct:free');
             }
 
             if (content) {
@@ -275,4 +328,174 @@ const analyzeLog = async (req, res) => {
     }
 };
 
-module.exports = { generateDietPlan, analyzeLog };
+// Regenerate a single meal
+const regenerateMeal = async (req, res) => {
+    try {
+        const { mealIndex, currentPlan } = req.body;
+
+        if (mealIndex === undefined || !currentPlan) {
+            return res.status(400).json({ message: 'Missing mealIndex or currentPlan' });
+        }
+
+        if (mealIndex < 0 || mealIndex > 3) {
+            return res.status(400).json({ message: 'Invalid mealIndex. Must be 0-3' });
+        }
+
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const profile = user.profile || {};
+        const { gender, weight, dietaryPreference, goals } = profile;
+
+        const mealTypes = ['Breakfast', 'Lunch', 'Snack', 'Dinner'];
+        const mealType = mealTypes[mealIndex];
+        const currentMeal = currentPlan.meals[mealIndex];
+
+        console.log(`[AI] Regenerating ${mealType} (index ${mealIndex})`);
+
+        // RAG: Build query for specific meal type
+        const primaryGoal = (goals || [])[0] || 'General Fitness';
+        const nutritionQuery = `${mealType} for ${primaryGoal} ${gender || 'Male'} ${weight || 70}kg ${dietaryPreference || 'Non-vegetarian'}`;
+        console.log('[RAG] Query:', nutritionQuery);
+
+        // RAG: Retrieve context
+        let retrievedContext = '';
+        try {
+            const relevantDocs = await vectorStore.retrieveContext(nutritionQuery, 2);
+            if (relevantDocs.length > 0) {
+                retrievedContext = vectorStore.formatContextForPrompt(relevantDocs);
+                console.log(`[RAG] Retrieved ${relevantDocs.length} documents for ${mealType}`);
+            }
+        } catch (ragError) {
+            console.warn('[RAG] Context retrieval failed:', ragError.message);
+        }
+
+        // Meal-specific variety instructions
+        const varietyInstructions = {
+            'Breakfast': `VARY the breakfast. Options:
+- Egg dishes: masala omelette, boiled eggs, egg bhurji, scrambled eggs
+- Parathas: aloo paratha, paneer paratha, mooli paratha with curd
+- South Indian: dosa with chutney, idli sambar, upma, poha
+- Smoothies/Bowls: protein smoothie with nuts, overnight oats with fruits
+- Avoid roti/sabzi for breakfast`,
+            'Lunch': `Create a balanced lunch with:
+- Complex carbs (brown rice, roti, quinoa)
+- Protein (chicken, fish, paneer, dal)
+- Vegetables (mixed sabzi, salad)
+- Vary cooking styles (grilled, curry, dry sabzi)`,
+            'Snack': `Light, protein-rich snack:
+- Greek yogurt with nuts
+- Protein shake with banana
+- Boiled eggs with veggies
+- Paneer tikka
+- Sprouts chaat`,
+            'Dinner': `Lighter dinner with high protein:
+- Grilled chicken/fish with vegetables
+- Dal with roti (limited)
+- Paneer curry with salad
+- Egg curry with minimal rice`
+        };
+
+        const systemPrompt = `You are an expert nutritionist. Generate a DIFFERENT ${mealType} option.
+
+Current ${mealType}: ${currentMeal.food}
+DO NOT repeat this. Create a completely different variation.
+
+${retrievedContext ? `Use these nutrition guidelines:
+${retrievedContext}
+
+` : ''}${varietyInstructions[mealType]}
+
+Output ONLY valid JSON for a single meal:
+{
+    "name": "${mealType}",
+    "food": "Meal Title",
+    "calories": 0,
+    "protein": 0,
+    "suggestion": "Detailed description"
+}`;
+
+        const userPrompt = `Profile: ${gender || 'Male'}, ${weight || 70}kg, ${dietaryPreference || 'Non-vegetarian'}.
+Goal: ${primaryGoal}.
+Task: Create a ${mealType} that is DIFFERENT from "${currentMeal.food}".`;
+
+        // Call LLM
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        const attemptGeneration = async (model, retries = 1) => {
+            try {
+                console.log(`[AI] Attempting ${mealType} generation with ${model}...`);
+                const response = await axios.post(
+                    'https://openrouter.ai/api/v1/chat/completions',
+                    {
+                        model: model,
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: userPrompt }
+                        ],
+                        temperature: 0.8  // Higher temperature for more variety
+                    },
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+                            'HTTP-Referer': 'http://localhost:3000',
+                            'X-Title': 'Spottr'
+                        }
+                    }
+                );
+                return response.data.choices[0].message.content;
+            } catch (error) {
+                console.error(`[AI] Error with ${model}:`, error.message);
+                if (retries > 0) {
+                    await sleep(2000);
+                    return attemptGeneration(model, retries - 1);
+                }
+                throw error;
+            }
+        };
+
+        let newMeal = null;
+        try {
+            let content;
+            try {
+                content = await attemptGeneration('google/gemini-2.0-flash-exp:free');
+            } catch (e) {
+                console.warn('[AI] Gemini failed, trying Llama 3.3 Free...');
+                content = await attemptGeneration('meta-llama/llama-3.3-70b-instruct:free');
+            }
+
+            if (content) {
+                try {
+                    let clean = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+                    const first = clean.indexOf('{');
+                    const last = clean.lastIndexOf('}');
+
+                    if (first !== -1 && last !== -1) {
+                        const jsonStr = clean.substring(first, last + 1);
+                        newMeal = JSON.parse(jsonStr);
+                        console.log(`[AI] Successfully regenerated ${mealType}`);
+                    }
+                } catch (parseError) {
+                    console.error('[AI] JSON parsing failed:', parseError.message);
+                }
+            }
+        } catch (aiError) {
+            console.error('[AI] Generation failed:', aiError.message);
+        }
+
+        // Fallback if generation failed
+        if (!newMeal) {
+            return res.status(500).json({ message: 'Failed to regenerate meal. Please try again.' });
+        }
+
+        res.json({ meal: newMeal });
+
+    } catch (error) {
+        console.error('Regenerate Meal Error:', error.message);
+        res.status(500).json({ message: 'Server error during meal regeneration' });
+    }
+};
+
+module.exports = { generateDietPlan, analyzeLog, regenerateMeal };

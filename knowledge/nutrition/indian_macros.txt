@@ -1,0 +1,218 @@
+INDIAN FOOD MACRONUTRIENT DATABASE
+
+STAPLE GRAINS & BREADS
+
+Rice (Cooked, 100g):
+- Calories: 130 kcal
+- Protein: 2.7g
+- Carbs: 28g
+- Fats: 0.3g
+- Note: 1 cup cooked rice ≈ 150g
+
+Roti/Chapati (1 medium, ~30g):
+- Calories: 70-80 kcal
+- Protein: 2.5g
+- Carbs: 15g
+- Fats: 0.5g
+
+Paratha (1 medium, with ghee):
+- Calories: 150-200 kcal
+- Protein: 3g
+- Carbs: 20g
+- Fats: 8-12g
+
+Poha (Cooked, 100g):
+- Calories: 130 kcal
+- Protein: 2g
+- Carbs: 23g
+- Fats: 3g
+
+Upma (100g):
+- Calories: 100-120 kcal
+- Protein: 3g
+- Carbs: 18g
+- Fats: 2-4g
+
+LENTILS & LEGUMES (Cooked, 100g)
+
+Moong Dal:
+- Calories: 105 kcal
+- Protein: 7g
+- Carbs: 19g
+- Fats: 0.4g
+
+Toor Dal:
+- Calories: 110 kcal
+- Protein: 6g
+- Carbs: 20g
+- Fats: 0.5g
+
+Chana (Chickpeas):
+- Calories: 164 kcal
+- Protein: 9g
+- Carbs: 27g
+- Fats: 2.6g
+
+Rajma (Kidney Beans):
+- Calories: 127 kcal
+- Protein: 8.7g
+- Carbs: 22.8g
+- Fats: 0.5g
+
+PROTEIN SOURCES
+
+Paneer (100g):
+- Calories: 265 kcal
+- Protein: 18g
+- Carbs: 1.2g
+- Fats: 20g
+- Note: High in protein but also high in fat
+
+Tofu (100g):
+- Calories: 76 kcal
+- Protein: 8g
+- Carbs: 1.9g
+- Fats: 4.8g
+
+Chicken Breast (100g, cooked):
+- Calories: 165 kcal
+- Protein: 31g
+- Carbs: 0g
+- Fats: 3.6g
+
+Fish (Rohu, 100g):
+- Calories: 97 kcal
+- Protein: 16.6g
+- Carbs: 0g
+- Fats: 3g
+
+Eggs (1 large):
+- Calories: 70 kcal
+- Protein: 6g
+- Carbs: 0.6g
+- Fats: 5g
+
+Egg Whites (1 large):
+- Calories: 17 kcal
+- Protein: 3.6g
+- Carbs: 0.2g
+- Fats: 0g
+
+DAIRY PRODUCTS
+
+Milk (Full Fat, 100ml):
+- Calories: 60 kcal
+- Protein: 3.2g
+- Carbs: 4.8g
+- Fats: 3.2g
+
+Curd/Yogurt (100g):
+- Calories: 60 kcal
+- Protein: 3.5g
+- Carbs: 4.7g
+- Fats: 3.3g
+
+Greek Yogurt (100g):
+- Calories: 59 kcal
+- Protein: 10g
+- Carbs: 3.6g
+- Fats: 0.4g
+
+Buttermilk/Chaas (100ml):
+- Calories: 40 kcal
+- Protein: 3g
+- Carbs: 5g
+- Fats: 0.5g
+
+VEGETABLES (Cooked, 100g)
+
+Spinach (Palak):
+- Calories: 23 kcal
+- Protein: 2.9g
+- Carbs: 3.6g
+- Fats: 0.4g
+
+Broccoli:
+- Calories: 35 kcal
+- Protein: 2.4g
+- Carbs: 7g
+- Fats: 0.4g
+
+Cauliflower (Gobi):
+- Calories: 25 kcal
+- Protein: 1.9g
+- Carbs: 5g
+- Fats: 0.3g
+
+Mixed Vegetable Sabzi:
+- Calories: 50-80 kcal (varies by oil)
+- Protein: 2g
+- Carbs: 8-10g
+- Fats: 2-5g
+
+SNACKS & COMMON FOODS
+
+Roasted Chana (30g):
+- Calories: 120 kcal
+- Protein: 6g
+- Carbs: 20g
+- Fats: 2g
+
+Peanuts (30g):
+- Calories: 170 kcal
+- Protein: 7.5g
+- Carbs: 5g
+- Fats: 14g
+
+Almonds (30g, ~20 nuts):
+- Calories: 170 kcal
+- Protein: 6g
+- Carbs: 6g
+- Fats: 15g
+
+Banana (1 medium):
+- Calories: 105 kcal
+- Protein: 1.3g
+- Carbs: 27g
+- Fats: 0.4g
+
+Apple (1 medium):
+- Calories: 95 kcal
+- Protein: 0.5g
+- Carbs: 25g
+- Fats: 0.3g
+
+COOKING OILS & FATS
+
+Ghee (1 tbsp, 15g):
+- Calories: 135 kcal
+- Fats: 15g
+
+Vegetable Oil (1 tbsp, 15ml):
+- Calories: 120 kcal
+- Fats: 14g
+
+REGIONAL VARIATIONS
+
+South Indian:
+- Idli (1 piece): 40 kcal, 2g protein, 8g carbs
+- Dosa (1 plain): 120 kcal, 3g protein, 20g carbs, 3g fats
+- Sambar (100ml): 50 kcal, 2g protein, 8g carbs
+
+North Indian:
+- Chole (100g): 150 kcal, 8g protein, 22g carbs, 3g fats
+- Aloo Gobi (100g): 80 kcal, 2g protein, 12g carbs, 3g fats
+
+PORTION GUIDELINES
+- 1 fist = ~1 cup = ~150g cooked rice/dal
+- 1 palm (thickness + size) = ~100g protein source
+- 1 thumb = ~1 tbsp oil/ghee
+- 2 hands cupped = ~1 serving vegetables
+
+MEAL CONSTRUCTION FORMULA
+Balanced Indian Meal:
+- 1 portion protein (chicken/paneer/dal)
+- 1 portion carbs (rice/roti)
+- 1-2 portions vegetables
+- Minimal added fats (1-2 tsp oil)
+- Total: ~400-600 kcal depending on portions

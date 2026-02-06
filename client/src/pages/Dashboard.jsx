@@ -107,6 +107,7 @@ const Dashboard = () => {
   };
 
   const [loadingDiet, setLoadingDiet] = useState(false);
+  const [regeneratingMeal, setRegeneratingMeal] = useState(null); // Track which meal is regenerating
 
   const handleGenerateDiet = async () => {
     setLoadingDiet(true);
@@ -127,6 +128,47 @@ const Dashboard = () => {
       toast.error(`⚠️ Error: ${msg}`);
     } finally {
       setLoadingDiet(false);
+    }
+  };
+
+  const handleRegenerateMeal = async (mealIndex) => {
+    setRegeneratingMeal(mealIndex);
+    const toastId = toast.loading(`Regenerating ${plans.diet.meals[mealIndex].name}...`);
+
+    try {
+      const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      const { data } = await axios.post(
+        "/ai/regenerate-meal",
+        {
+          mealIndex,
+          currentPlan: plans.diet
+        },
+        config
+      );
+
+      // Update only the specific meal
+      setPlans((prev) => {
+        const updatedMeals = [...prev.diet.meals];
+        updatedMeals[mealIndex] = data.meal;
+        return {
+          ...prev,
+          diet: {
+            ...prev.diet,
+            meals: updatedMeals
+          }
+        };
+      });
+
+      toast.success(`✨ ${data.meal.name} regenerated!`, {
+        id: toastId,
+        style: { background: '#1a1a1a', color: '#25F45C', border: '1px solid #25F45C' }
+      });
+    } catch (error) {
+      console.error("Regenerate Meal Error:", error);
+      const msg = error.response?.data?.message || "Failed to regenerate meal.";
+      toast.error(`⚠️ ${msg}`, { id: toastId });
+    } finally {
+      setRegeneratingMeal(null);
     }
   };
 
@@ -277,12 +319,25 @@ const Dashboard = () => {
                       </div>
 
                       {/* Content Card */}
-                      <div className="flex-1 bg-gray-800/40 border border-white/5 rounded-2xl p-4 hover:bg-gray-800 transition duration-300 hover:border-white/10">
+                      <div className="flex-1 bg-gray-800/40 border border-white/5 rounded-2xl p-4 hover:bg-gray-800 transition duration-300 hover:border-white/10 relative group/card">
                         <div className="flex justify-between items-start mb-1">
-                          <h4 className="text-white font-bold text-lg leading-tight group-hover:text-primary transition">{meal.food}</h4>
-                          <div className="text-right">
-                            <div className="text-xs font-bold text-white bg-black/50 px-2 py-1 rounded inline-block">{meal.calories} kcal</div>
-                            <div className="text-[10px] text-primary font-bold mt-1">{meal.protein}g Pro</div>
+                          <h4 className="text-white font-bold text-lg leading-tight group-hover:text-primary transition pr-8">{meal.food}</h4>
+                          <div className="text-right flex items-start gap-2">
+                            {/* Regenerate Button */}
+                            <button
+                              onClick={() => handleRegenerateMeal(idx)}
+                              disabled={regeneratingMeal !== null}
+                              className="opacity-0 group-hover/card:opacity-100 transition-opacity duration-200 p-1.5 rounded-full bg-gray-700/50 hover:bg-primary/20 hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-600 hover:border-primary/50"
+                              title="Regenerate this meal"
+                            >
+                              <span className={`text-sm ${regeneratingMeal === idx ? 'animate-spin' : ''}`}>
+                                {regeneratingMeal === idx ? '⌛' : '🔄'}
+                              </span>
+                            </button>
+                            <div>
+                              <div className="text-xs font-bold text-white bg-black/50 px-2 py-1 rounded inline-block">{meal.calories} kcal</div>
+                              <div className="text-[10px] text-primary font-bold mt-1">{meal.protein}g Pro</div>
+                            </div>
                           </div>
                         </div>
                         <p className="text-xs text-gray-500 leading-relaxed max-w-[90%]">{meal.suggestion}</p>

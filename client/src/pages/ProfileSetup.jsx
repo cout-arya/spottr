@@ -33,9 +33,9 @@ const ProfileSetup = () => {
 
         // Enhanced
         benchmarks: {
-            squat: user?.profile?.benchmarks?.squat ? String(user.profile.benchmarks.squat).replace('kg', '') : '',
-            bench: user?.profile?.benchmarks?.bench ? String(user.profile.benchmarks.bench).replace('kg', '') : '',
-            deadlift: user?.profile?.benchmarks?.deadlift ? String(user.profile.benchmarks.deadlift).replace('kg', '') : ''
+            squat: user?.profile?.benchmarks?.squat && user.profile.benchmarks.squat !== 'None' && user.profile.benchmarks.squat !== 0 ? String(user.profile.benchmarks.squat).replace('kg', '') : '',
+            bench: user?.profile?.benchmarks?.bench && user.profile.benchmarks.bench !== 'None' && user.profile.benchmarks.bench !== 0 ? String(user.profile.benchmarks.bench).replace('kg', '') : '',
+            deadlift: user?.profile?.benchmarks?.deadlift && user.profile.benchmarks.deadlift !== 'None' && user.profile.benchmarks.deadlift !== 0 ? String(user.profile.benchmarks.deadlift).replace('kg', '') : ''
         },
         commitment: user?.profile?.commitment || 'Casual',
         lifestyle: {
