@@ -168,7 +168,7 @@ const analyzeLog = async (req, res) => {
         const { text } = req.body;
         if (!text) return res.status(400).json({ message: 'Text is required' });
 
-        const systemPrompt = `Analyze user log. Return JSON: { "type": "meal"|"workout", "summary": "Title", "xp": 0, "data": { ... } }`;
+        const systemPrompt = `Analyze user log. Return ONLY valid JSON: { "type": "meal" or "workout", "summary": "Short title", "xp": <integer between 10 and 50 based on effort>, "data": { "details": "context" } }`;
         const userPrompt = `Log: "${text}"`;
 
         const messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }];

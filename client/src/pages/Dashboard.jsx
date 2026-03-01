@@ -86,7 +86,7 @@ const Dashboard = () => {
       toast.success(
         <div className="flex flex-col">
           <span className="font-bold">{analysis.summary} Logged!</span>
-          <span className="text-xs text-primary">+{analysis.xp} XP Earned</span>
+          <span className="text-xs text-primary">+{logRes.data.xpEarned || analysis.xp} XP Earned</span>
         </div>,
         { id: toastId, duration: 4000, icon: '🤖' }
       );

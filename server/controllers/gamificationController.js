@@ -93,7 +93,8 @@ const logActivity = asyncHandler(async (req, res) => {
     user.gamification.lastActivity = Date.now();
     await user.save();
 
-    res.json({ ...user.gamification, newBadges });
+    const gamificationData = user.gamification.toObject ? user.gamification.toObject() : user.gamification;
+    res.json({ ...gamificationData, newBadges, xpEarned });
 });
 
 // @desc    Get Leaderboard (Friends/Matches Only)
