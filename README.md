@@ -69,11 +69,6 @@ Once matched, coordinate your workouts instantly. Real-time messaging allows you
 - **AI**: Gemini/OpenAI Integration for Diet Plans & Smart Logging
 - **Real-time**: Socket.io for Chat
 
-## 🧪 Test Data (Delhi Demo)
-The application is pre-seeded with test users in **New Delhi** for demonstration:
-- **Dave Delhi**: Your main demo account.
-- **Priya Power, Rahul Runner, Amit Abs**: Sample matches with varying profiles.
-- **Pre-filled Data**: existing chats, matches, and activity logs to showcase the UI.
 
 ## 🏃‍♂️ Getting Started
 1. Clone the repository.
