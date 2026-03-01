@@ -166,7 +166,7 @@ const Chat = () => {
                                 >
                                     <div className="relative">
                                         <div className="w-12 h-12 rounded-full overflow-hidden border border-gray-700">
-                                            <img src={partner.profile?.photos?.[0] || 'https://via.placeholder.com/150'} alt="avatar" className="w-full h-full object-cover" />
+                                            <img src={partner.profile?.photos?.[0] || 'https://placehold.co/150'} alt="avatar" className="w-full h-full object-cover" />
                                         </div>
                                         {/* Online Indicator Mock */}
                                         <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-dark"></div>
@@ -201,7 +201,7 @@ const Chat = () => {
                                     <FaArrowLeft />
                                 </button>
                                 <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-600">
-                                    <img src={getPartner(activeMatch).profile?.photos?.[0] || 'https://via.placeholder.com/150'} alt="avatar" className="w-full h-full object-cover" />
+                                    <img src={getPartner(activeMatch).profile?.photos?.[0] || 'https://placehold.co/150'} alt="avatar" className="w-full h-full object-cover" />
                                 </div>
                                 <div>
                                     <h3 className="text-white font-bold text-lg">{getPartner(activeMatch).name}</h3>

@@ -1,76 +1,71 @@
+const asyncHandler = require('express-async-handler');
 const axios = require('axios');
 const User = require('../models/User');
-// RAG: Import vector store for nutrition knowledge retrieval
 const vectorStore = require('../utils/vectorStore');
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Unified Helper for AI calls
+const attemptGeneration = async (model, messages, retries = 1, jsonMode = false) => {
+    try {
+        console.log(`[AI] Attempting generation with ${model}...`);
+        const config = {
+            model: model,
+            messages: messages,
+            temperature: 0.7,
+        };
+        if (jsonMode) config.response_format = { type: "json_object" };
+
+        const response = await axios.post(
+            'https://openrouter.ai/api/v1/chat/completions',
+            config,
+            {
+                headers: {
+                    'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+                    'HTTP-Referer': 'http://localhost:3000',
+                    'X-Title': 'Spottr'
+                }
+            }
+        );
+        console.log(`[AI] Response received from ${model}. Status: ${response.status}`);
+        return response.data.choices[0].message.content;
+    } catch (error) {
+        console.error(`[AI] Error with ${model}:`, error.message);
+        if (retries > 0) {
+            await sleep(2000);
+            return attemptGeneration(model, messages, retries - 1, jsonMode);
+        }
+        throw error;
+    }
+};
 
 const generateDietPlan = async (req, res) => {
     try {
         if (!process.env.OPENROUTER_API_KEY) {
-            console.error('Missing OPENROUTER_API_KEY');
             return res.status(500).json({ message: 'Server Configuration Error: API Key Missing' });
         }
 
         const user = await User.findById(req.user._id);
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
+        if (!user) return res.status(404).json({ message: 'User not found' });
 
         const profile = user.profile || {};
-        const { age, gender, height, weight, dietaryPreference, goals, fitnessLevel } = profile;
+        const { age, gender, height, weight, dietaryPreference, goals } = profile;
 
-        console.log('[AI] Generating diet for User:', req.user?._id);
-
-        // RAG: Construct nutrition query from user profile
+        // RAG Logic
         const primaryGoal = (goals || [])[0] || 'General Fitness';
         const nutritionQuery = `${primaryGoal} nutrition for ${gender || 'Male'} ${weight || 70}kg ${dietaryPreference || 'Non-vegetarian'}`;
-        console.log('[RAG] Query:', nutritionQuery);
-
-        // RAG: Retrieve relevant nutrition knowledge from vector database
         let retrievedContext = '';
         try {
             const relevantDocs = await vectorStore.retrieveContext(nutritionQuery, 3);
             if (relevantDocs.length > 0) {
                 retrievedContext = vectorStore.formatContextForPrompt(relevantDocs);
-                console.log(`[RAG] Retrieved ${relevantDocs.length} relevant documents`);
-            } else {
-                console.warn('[RAG] No context retrieved, proceeding without RAG');
             }
         } catch (ragError) {
-            console.warn('[RAG] Context retrieval failed, proceeding without:', ragError.message);
+            console.warn('[RAG] Context retrieval failed:', ragError.message);
         }
 
-        // RAG: System prompt with injected nutrition knowledge
         const systemPrompt = `You are an expert nutritionist. Create a 1-day Indian diet plan (4 meals).
-
-${retrievedContext ? `IMPORTANT: Use ONLY the following verified nutrition guidelines to create the plan:
-
-${retrievedContext}
-
-Follow these rules strictly:
-- Base ALL recommendations on the provided nutrition guidelines above
-- Do NOT invent nutrition rules, macro targets, or calorie recommendations
-- Use the specific foods and portions mentioned in the guidelines
-- Match protein targets to the retrieved knowledge
-
-` : ''}
-MEAL VARIETY RULES:
-1. Breakfast should VARY between:
-   - Egg dishes (masala omelette, boiled eggs, egg bhurji, scrambled)
-   - Parathas (aloo paratha, paneer paratha, mooli paratha)
-   - South Indian (dosa with chutney, idli sambar, upma, poha)
-   - Smoothies/Bowls (protein smoothie with nuts, overnight oats with fruits)
-   - Avoid always suggesting roti/sabzi for breakfast
-
-2. Vary protein sources across meals:
-   - Mix between eggs, chicken, fish, paneer, dal, yogurt
-   - Use different cooking styles (grilled, boiled, sautéed, steamed)
-
-3. Consider meal timing:
-   - Breakfast: Quick-digesting carbs + protein for energy
-   - Lunch: Balanced with complex carbs and vegetables
-   - Snack: Light, protein-rich, easy to digest
-   - Dinner: Moderate carbs, high protein, lighter than lunch
-
+${retrievedContext ? `IMPORTANT: Use verified guidelines:\n${retrievedContext}\n` : ''}
 Output ONLY valid JSON. No markdown. Structure:
 {
     "calories": "Total Kcal",
@@ -82,115 +77,83 @@ Output ONLY valid JSON. No markdown. Structure:
         { "name": "Snack", "food": "Title", "calories": 0, "protein": 0, "suggestion": "Detail" },
         { "name": "Dinner", "food": "Title", "calories": 0, "protein": 0, "suggestion": "Detail" }
     ],
-    "advice": "One short tip based on the guidelines"
+    "advice": "One short tip"
 }`;
 
         const userPrompt = `Profile: ${age || 25}yo ${gender || 'Male'}, ${height || 170}cm, ${weight || 70}kg.
         Diet Type: ${dietaryPreference || 'Non-vegetarian'}.
-        Primary Goal: ${(goals || []).join(', ') || 'General Fitness'}.
-        Gym Type: ${profile.gymType || 'Commercial Gym'}.
-        Experience: ${profile.experienceYears || 0} years (${profile.fitnessLevel || 'Beginner'}).
-        Commitment: ${profile.commitment || 'Casual'} user.
-        Lifestyle: Smoker(${profile.lifestyle?.smoker || 'No'}), Alcohol(${profile.lifestyle?.alcohol || 'None'}), Sleep(${profile.lifestyle?.sleep || 'Irregular'}).
-        
-        Task: Create a highly personalized 1-day Indian diet plan effectively targeting the Primary Goal.
-        Ensure protein intake matches the goal (e.g., High for Muscle Gain).`;
+        Primary Goal: ${primaryGoal}.
+        Create a personalized 1-day Indian diet plan.`;
 
-        // Helper to call AI with retry/fallback
-        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+        const messages = [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+        ];
 
-        const attemptGeneration = async (model, retries = 1) => {
+        let content;
+        try {
+            content = await attemptGeneration('meta-llama/llama-3.3-70b-instruct:free', messages, 1, true);
+        } catch (e) {
+            console.warn('[AI] Llama failed, trying Gemma-3...');
             try {
-                console.log(`[AI] Attempting generation with ${model}...`);
-                const response = await axios.post(
-                    'https://openrouter.ai/api/v1/chat/completions',
-                    {
-                        model: model,
-                        messages: [
-                            { role: 'system', content: systemPrompt },
-                            { role: 'user', content: userPrompt }
-                        ],
-                        temperature: 0.7,
-                        response_format: { type: 'json_object' }
-                    },
-                    {
-                        headers: {
-                            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-                            'HTTP-Referer': 'http://localhost:3000',
-                            'X-Title': 'TinderGymBuddies'
-                        }
+                content = await attemptGeneration('google/gemma-3-12b-it:free', messages, 1, true);
+            } catch (e2) {
+                console.warn('[AI] Gemma failed, trying Qwen-3...');
+                try {
+                    content = await attemptGeneration('qwen/qwen3-4b:free', messages, 1, true);
+                } catch (e3) {
+                    console.warn('[AI] Qwen failing, trying OpenRouter Free...');
+                    try {
+                        content = await attemptGeneration('openrouter/free', messages, 1, true);
+                    } catch (e4) {
+                        console.error('[AI] All models failed in Generate Diet');
                     }
-                );
-                console.log(`[AI] Response received from ${model}. Status: ${response.status}`);
-                return response.data.choices[0].message.content;
-            } catch (error) {
-                console.error(`[AI] Error with ${model}:`, error.message);
-                if (retries > 0) {
-                    await sleep(2000);
-                    return attemptGeneration(model, retries - 1);
                 }
-                throw error;
             }
-        };
-
-        const mockDiet = {
-            calories: 2200,
-            protein: 150,
-            macros: { carbs: 200, fats: 70 },
-            meals: [
-                { name: "Breakfast", food: "Oats & Whey", calories: 400, protein: 30, suggestion: "Add berries" },
-                { name: "Lunch", food: "Chicken Rice", calories: 700, protein: 50, suggestion: "Add veggies" },
-                { name: "Snack", food: "Greek Yogurt", calories: 200, protein: 20, suggestion: "High protein" },
-                { name: "Dinner", food: "Salmon & Asparagus", calories: 600, protein: 40, suggestion: "Light dinner" }
-            ],
-            advice: "Stay consistent with protein! (AI Service Unavailable)"
-        };
+        }
 
         let dietPlan = null;
-        try {
-            let content;
-            try {
-                content = await attemptGeneration('google/gemini-2.0-flash-exp:free');
-            } catch (e) {
-                console.warn('[AI] Gemini failed, trying Llama 3.3 Free...');
-                content = await attemptGeneration('meta-llama/llama-3.3-70b-instruct:free');
-            }
-
-            if (content) {
-                const clean = content.replace(/```json/g, '').replace(/```/g, '').trim();
-                const first = clean.indexOf('{');
-                const last = clean.lastIndexOf('}');
-                if (first !== -1 && last !== -1) {
+        if (content) {
+            const clean = content.replace(/```json/g, '').replace(/```/g, '').trim();
+            const first = clean.indexOf('{');
+            const last = clean.lastIndexOf('}');
+            if (first !== -1 && last !== -1) {
+                try {
                     dietPlan = JSON.parse(clean.substring(first, last + 1));
+                } catch (jsonError) {
+                    console.error('[AI] JSON Parse Error:', jsonError.message);
                 }
             }
-        } catch (aiError) {
-            console.error('[AI] Generation process failed, falling back to mock.', aiError.message);
         }
 
         if (!dietPlan) {
-            console.warn('[AI] Using Mock Diet Plan.');
-            dietPlan = mockDiet;
+            dietPlan = {
+                calories: 2200,
+                protein: 140,
+                macros: { carbs: 200, fats: 60 },
+                meals: [
+                    { name: "Breakfast", food: "Oats & Whey", calories: 400, protein: 30, suggestion: "Add berries" },
+                    { name: "Lunch", food: "Chicken Rice", calories: 700, protein: 50, suggestion: "Add veggies" },
+                    { name: "Snack", food: "Greek Yogurt", calories: 200, protein: 20, suggestion: "High protein" },
+                    { name: "Dinner", food: "Salmon & Asparagus", calories: 600, protein: 40, suggestion: "Light dinner" }
+                ],
+                advice: "Stay consistent with protein! (AI Service Unavailable)"
+            };
         }
 
-        // Save to User Profile
+        // Save to DB
         try {
-            const currentUser = await User.findById(req.user._id);
-            if (currentUser) {
-                if (!currentUser.plans) currentUser.plans = {};
-                currentUser.plans.diet = dietPlan;
-                await currentUser.save();
-            }
+            if (!user.plans) user.plans = {};
+            user.plans.diet = dietPlan;
+            await user.save();
         } catch (dbError) {
-            console.error('[AI] Failed to save plan to DB:', dbError.message);
-            // Continue to return the plan even if save failed
+            console.error('[AI] Failed to save plan:', dbError.message);
         }
 
         res.json(dietPlan);
 
     } catch (error) {
-        console.error('Final AI Controller Error:', error.message);
-        // Fallback catch-all
+        console.error('Generate Diet Error:', error.message);
         res.json({
             calories: 2000,
             protein: 100,
@@ -205,296 +168,131 @@ const analyzeLog = async (req, res) => {
         const { text } = req.body;
         if (!text) return res.status(400).json({ message: 'Text is required' });
 
-        console.log('[AI] Analyzing Log:', text);
+        const systemPrompt = `Analyze user log. Return JSON: { "type": "meal"|"workout", "summary": "Title", "xp": 0, "data": { ... } }`;
+        const userPrompt = `Log: "${text}"`;
 
-        const systemPrompt = `You are an expert fitness AI. Analyze the user's natural language log.
-        Determine if it is a 'meal' or a 'workout'.
-        
-        Output JSON ONLY. No markdown.
-        Structure:
-        {
-           "type": "meal" | "workout",
-           "summary": "Short title (e.g. 'Heavy Chest Day' or 'Healthy Salad')",
-           "xp": 0, 
-           // XP LOGIC:
-           // MEAL: Calculate based heavily on Protein content and "Cleanliness". Range 5-50.
-           // - High Protein (>25g) & Clean (e.g. Chicken, Eggs, Whey): Award 35-50 XP.
-           // - Moderate Protein / Balanced Meal: Award 20-35 XP.
-           // - Low Protein / Junk Food / High Sugar: Award 5-15 XP.
-           // WORKOUT: Calculate based on Intensity/Duration. Range 30-100.
-           
-           "data": {
-               // IF MEAL: Estimate nutritional values
-               "calories": 0,
-               "protein": 0, // grams
-               "macros": { "carbs": 0, "fats": 0 }
-               // IF WORKOUT: Estimate details
-               "duration": "Estimate duration (e.g. 45 mins)",
-               "intensity": "Low" | "Medium" | "High",
-               "exercises": ["List of identified exercises"]
-           }
-        }`;
+        const messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }];
 
-        const userPrompt = `User Log: "${text}"`;
-
-        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-        const attemptGeneration = async (model, retries = 1) => {
+        let content;
+        try {
+            content = await attemptGeneration('meta-llama/llama-3.1-8b-instruct:free', messages, 1, true);
+        } catch (e) {
+            console.warn('[AI] Llama failed on log, trying Gemma-3...');
             try {
-                const response = await axios.post(
-                    'https://openrouter.ai/api/v1/chat/completions',
-                    {
-                        model: model,
-                        messages: [
-                            { role: 'system', content: systemPrompt },
-                            { role: 'user', content: userPrompt }
-                        ],
-                        temperature: 0.5,
-                        response_format: { type: 'json_object' }
-                    },
-                    {
-                        headers: {
-                            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-                            'HTTP-Referer': 'http://localhost:3000',
-                            'X-Title': 'TinderGymBuddies'
-                        }
-                    }
-                );
-                return response.data.choices[0].message.content;
-            } catch (error) {
-                if (retries > 0) {
-                    await sleep(2000);
-                    return attemptGeneration(model, retries - 1);
+                content = await attemptGeneration('google/gemma-3-12b-it:free', messages, 1, true);
+            } catch (e2) {
+                console.warn('[AI] Gemma failed, trying OpenRouter Free...');
+                try {
+                    content = await attemptGeneration('openrouter/free', messages, 1, true);
+                } catch (e3) {
+                    console.error('[AI] All models failed in Analyze Log');
                 }
-                throw error;
             }
-        };
-
-        const mockLogResponse = {
-            type: (text.toLowerCase().includes('eat') || text.toLowerCase().includes('food') || text.toLowerCase().includes('meal')) ? 'meal' : 'workout',
-            summary: "Logged Activity (AI Unavailable)",
-            xp: 15,
-            data: {
-                calories: 200,
-                protein: 15,
-                macros: { carbs: 20, fats: 5 },
-                duration: "30 mins",
-                intensity: "Medium",
-                exercises: ["General Activity"]
-            }
-        };
+        }
 
         let result = null;
-
-        if (process.env.OPENROUTER_API_KEY) {
-            try {
-                let content;
-                try {
-                    content = await attemptGeneration('google/gemini-2.0-flash-exp:free');
-                } catch (e) {
-                    content = await attemptGeneration('mistralai/mistral-7b-instruct:free');
-                }
-
-                // Clean and Parse
-                const clean = content.replace(/```json/g, '').replace(/```/g, '').trim();
-                const first = clean.indexOf('{');
-                const last = clean.lastIndexOf('}');
-                if (first !== -1 && last !== -1) {
-                    result = JSON.parse(clean.substring(first, last + 1));
-                }
-            } catch (aiError) {
-                console.error('[AI] Analyze Log Failed:', aiError.message);
+        if (content) {
+            const clean = content.replace(/```json/g, '').replace(/```/g, '').trim();
+            const first = clean.indexOf('{');
+            const last = clean.lastIndexOf('}');
+            if (first !== -1 && last !== -1) {
+                result = JSON.parse(clean.substring(first, last + 1));
             }
-        } else {
-            console.warn('[AI] Missing API Key for analyzeLog.');
         }
 
-        if (!result) {
-            console.warn('[AI] Using Mock Log Result.');
-            result = mockLogResponse;
-        }
-
-        res.json(result);
+        res.json(result || { type: 'workout', summary: 'Log', xp: 5, data: {} });
 
     } catch (error) {
-        console.error('Final Analyze Log Error:', error.message);
-        // Fallback to prevent crash
-        res.json({
-            type: 'workout',
-            summary: "Activity Logged",
-            xp: 5,
-            data: {}
-        });
+        console.error('Analyze Log Error:', error);
+        res.json({ type: 'workout', summary: 'Log', xp: 5, data: {} });
     }
 };
 
-// Regenerate a single meal
 const regenerateMeal = async (req, res) => {
     try {
         const { mealIndex, currentPlan } = req.body;
+        console.log(`[AI] Regenerating meal at index ${mealIndex}...`);
 
         if (mealIndex === undefined || !currentPlan) {
-            return res.status(400).json({ message: 'Missing mealIndex or currentPlan' });
+            console.warn('[AI] Missing mealIndex or currentPlan');
+            return res.status(400).json({ message: 'Invalid data' });
         }
 
-        if (mealIndex < 0 || mealIndex > 3) {
-            return res.status(400).json({ message: 'Invalid mealIndex. Must be 0-3' });
+        // Safety: ensure currentPlan.meals exists
+        if (!currentPlan.meals || !Array.isArray(currentPlan.meals)) {
+            console.warn('[AI] currentPlan.meals is missing or not an array');
+            return res.status(400).json({ message: 'Missing meals array in plan' });
         }
-
-        const user = await User.findById(req.user._id);
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        const profile = user.profile || {};
-        const { gender, weight, dietaryPreference, goals } = profile;
 
         const mealTypes = ['Breakfast', 'Lunch', 'Snack', 'Dinner'];
-        const mealType = mealTypes[mealIndex];
-        const currentMeal = currentPlan.meals[mealIndex];
+        const mealType = mealTypes[mealIndex] || 'Meal';
+        const currentMeal = currentPlan.meals[mealIndex] || { food: 'current meal' };
 
-        console.log(`[AI] Regenerating ${mealType} (index ${mealIndex})`);
+        const user = await User.findById(req.user._id);
+        const profile = user?.profile || {};
+        const { gender = 'Male', weight = 70, goals = [] } = profile;
 
-        // RAG: Build query for specific meal type
-        const primaryGoal = (goals || [])[0] || 'General Fitness';
-        const nutritionQuery = `${mealType} for ${primaryGoal} ${gender || 'Male'} ${weight || 70}kg ${dietaryPreference || 'Non-vegetarian'}`;
-        console.log('[RAG] Query:', nutritionQuery);
+        const primaryGoal = goals[0] || 'General Fitness';
+        const systemPrompt = `Regenerate ${mealType}. Different from: ${currentMeal.food}. Output ONLY JSON: { "name": "${mealType}", "food": "Title", "calories": 0, "protein": 0, "suggestion": "Detail" }`;
+        const userPrompt = `Profile: ${gender}, ${weight}kg, ${primaryGoal}. Generate a healthy Indian option.`;
 
-        // RAG: Retrieve context
-        let retrievedContext = '';
+        const messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }];
+
+        let content;
         try {
-            const relevantDocs = await vectorStore.retrieveContext(nutritionQuery, 2);
-            if (relevantDocs.length > 0) {
-                retrievedContext = vectorStore.formatContextForPrompt(relevantDocs);
-                console.log(`[RAG] Retrieved ${relevantDocs.length} documents for ${mealType}`);
-            }
-        } catch (ragError) {
-            console.warn('[RAG] Context retrieval failed:', ragError.message);
-        }
-
-        // Meal-specific variety instructions
-        const varietyInstructions = {
-            'Breakfast': `VARY the breakfast. Options:
-- Egg dishes: masala omelette, boiled eggs, egg bhurji, scrambled eggs
-- Parathas: aloo paratha, paneer paratha, mooli paratha with curd
-- South Indian: dosa with chutney, idli sambar, upma, poha
-- Smoothies/Bowls: protein smoothie with nuts, overnight oats with fruits
-- Avoid roti/sabzi for breakfast`,
-            'Lunch': `Create a balanced lunch with:
-- Complex carbs (brown rice, roti, quinoa)
-- Protein (chicken, fish, paneer, dal)
-- Vegetables (mixed sabzi, salad)
-- Vary cooking styles (grilled, curry, dry sabzi)`,
-            'Snack': `Light, protein-rich snack:
-- Greek yogurt with nuts
-- Protein shake with banana
-- Boiled eggs with veggies
-- Paneer tikka
-- Sprouts chaat`,
-            'Dinner': `Lighter dinner with high protein:
-- Grilled chicken/fish with vegetables
-- Dal with roti (limited)
-- Paneer curry with salad
-- Egg curry with minimal rice`
-        };
-
-        const systemPrompt = `You are an expert nutritionist. Generate a DIFFERENT ${mealType} option.
-
-Current ${mealType}: ${currentMeal.food}
-DO NOT repeat this. Create a completely different variation.
-
-${retrievedContext ? `Use these nutrition guidelines:
-${retrievedContext}
-
-` : ''}${varietyInstructions[mealType]}
-
-Output ONLY valid JSON for a single meal:
-{
-    "name": "${mealType}",
-    "food": "Meal Title",
-    "calories": 0,
-    "protein": 0,
-    "suggestion": "Detailed description"
-}`;
-
-        const userPrompt = `Profile: ${gender || 'Male'}, ${weight || 70}kg, ${dietaryPreference || 'Non-vegetarian'}.
-Goal: ${primaryGoal}.
-Task: Create a ${mealType} that is DIFFERENT from "${currentMeal.food}".`;
-
-        // Call LLM
-        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-        const attemptGeneration = async (model, retries = 1) => {
+            content = await attemptGeneration('meta-llama/llama-3.3-70b-instruct:free', messages, 1, true);
+        } catch (e) {
+            console.warn('[AI] Llama failed on regenerate, trying Gemma-3...');
             try {
-                console.log(`[AI] Attempting ${mealType} generation with ${model}...`);
-                const response = await axios.post(
-                    'https://openrouter.ai/api/v1/chat/completions',
-                    {
-                        model: model,
-                        messages: [
-                            { role: 'system', content: systemPrompt },
-                            { role: 'user', content: userPrompt }
-                        ],
-                        temperature: 0.8  // Higher temperature for more variety
-                    },
-                    {
-                        headers: {
-                            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-                            'HTTP-Referer': 'http://localhost:3000',
-                            'X-Title': 'Spottr'
-                        }
+                content = await attemptGeneration('google/gemma-3-12b-it:free', messages, 1, true);
+            } catch (e2) {
+                console.warn('[AI] Gemma failed, trying Qwen-3...');
+                try {
+                    content = await attemptGeneration('qwen/qwen3-4b:free', messages, 1, true);
+                } catch (e3) {
+                    console.warn('[AI] Qwen failing, trying OpenRouter Free...');
+                    try {
+                        content = await attemptGeneration('openrouter/free', messages, 1, true);
+                    } catch (e4) {
+                        console.error('[AI] All models failed in Regenerate Meal');
                     }
-                );
-                return response.data.choices[0].message.content;
-            } catch (error) {
-                console.error(`[AI] Error with ${model}:`, error.message);
-                if (retries > 0) {
-                    await sleep(2000);
-                    return attemptGeneration(model, retries - 1);
                 }
-                throw error;
             }
-        };
+        }
 
         let newMeal = null;
-        try {
-            let content;
-            try {
-                content = await attemptGeneration('google/gemini-2.0-flash-exp:free');
-            } catch (e) {
-                console.warn('[AI] Gemini failed, trying Llama 3.3 Free...');
-                content = await attemptGeneration('meta-llama/llama-3.3-70b-instruct:free');
-            }
-
-            if (content) {
+        if (content) {
+            const clean = content.replace(/```json/g, '').replace(/```/g, '').trim();
+            const first = clean.indexOf('{');
+            const last = clean.lastIndexOf('}');
+            if (first !== -1 && last !== -1) {
                 try {
-                    let clean = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-                    const first = clean.indexOf('{');
-                    const last = clean.lastIndexOf('}');
-
-                    if (first !== -1 && last !== -1) {
-                        const jsonStr = clean.substring(first, last + 1);
-                        newMeal = JSON.parse(jsonStr);
-                        console.log(`[AI] Successfully regenerated ${mealType}`);
-                    }
-                } catch (parseError) {
-                    console.error('[AI] JSON parsing failed:', parseError.message);
+                    newMeal = JSON.parse(clean.substring(first, last + 1));
+                } catch (jsonError) {
+                    console.error('[AI] JSON Parse Error on regenerate:', jsonError.message);
                 }
             }
-        } catch (aiError) {
-            console.error('[AI] Generation failed:', aiError.message);
         }
 
-        // Fallback if generation failed
+        // Final Fallback to prevent 500 error
         if (!newMeal) {
-            return res.status(500).json({ message: 'Failed to regenerate meal. Please try again.' });
+            console.log('[AI] Using fallback meal data...');
+            newMeal = {
+                name: mealType,
+                food: mealIndex === 0 ? "Oats with Nuts & Berries" :
+                    mealIndex === 1 ? "Paneer/Tofu Tikka with Salad" :
+                        mealIndex === 2 ? "Roasted Makhana / Greek Yogurt" : "Dalia/Vegetable Khichdi",
+                calories: 400,
+                protein: 20,
+                suggestion: "AI service busy. Try this healthy balanced swap!"
+            };
         }
 
         res.json({ meal: newMeal });
 
     } catch (error) {
-        console.error('Regenerate Meal Error:', error.message);
-        res.status(500).json({ message: 'Server error during meal regeneration' });
+        console.error('Regenerate Error:', error.message);
+        res.status(500).json({ message: 'Server error during meal regeneration', error: error.message });
     }
 };
 

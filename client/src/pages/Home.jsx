@@ -14,6 +14,7 @@ import {
     FaStar,
     FaSearch,
     FaBell,
+    FaSync,
 } from "react-icons/fa";
 
 const Home = () => {
@@ -27,10 +28,12 @@ const Home = () => {
     // Feature States
     const [showSearch, setShowSearch] = useState(false);
     const [showNotifs, setShowNotifs] = useState(false);
+    const [showResetConfirm, setShowResetConfirm] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [searchResults, setSearchResults] = useState([]);
     const [matches, setMatches] = useState([]);
     const [likeNotifications, setLikeNotifications] = useState([]);
+    const [matchNotifications, setMatchNotifications] = useState([]);
 
     // Socket Real-time Match Listener
     useEffect(() => {
@@ -51,7 +54,7 @@ const Home = () => {
                             <div className="flex-shrink-0 pt-0.5">
                                 <img
                                     className="h-10 w-10 rounded-full object-cover"
-                                    src={newMatch.friend.photo || 'https://via.placeholder.com/150'}
+                                    src={newMatch.friend.photo || 'https://placehold.co/150'}
                                     alt=""
                                 />
                             </div>
@@ -75,6 +78,15 @@ const Home = () => {
                     </div>
                 </div>
             ), { duration: 5000 });
+
+            // Add to persistent notifications
+            setMatchNotifications(prev => [{
+                _id: Date.now(),
+                type: 'match',
+                friend: newMatch.friend,
+                matchId: newMatch._id,
+                timestamp: new Date()
+            }, ...prev]);
 
             // Update local state without needing to refresh
             fetchMatches();
@@ -205,6 +217,67 @@ const Home = () => {
         setShowNotifs(false);
     };
 
+    const handleResetDiscovery = async () => {
+        try {
+            const config = { headers: { Authorization: `Bearer ${user.token}` } };
+            await axios.post("/matches/reset-interactions", {}, config);
+
+            setCurrentIndex(0);
+            setShowResetConfirm(false);
+            await fetchRecommendations();
+
+            toast.success('Discovery reset! All users are back.', {
+                icon: '🔄',
+                style: {
+                    borderRadius: '10px',
+                    background: '#0F0F0F',
+                    color: '#fff',
+                    border: '1px solid #25F45C',
+                },
+            });
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to reset discovery');
+        }
+    };
+
+    const handleSearchSwipe = async (targetId, type) => {
+        try {
+            const config = { headers: { Authorization: `Bearer ${user.token}` } };
+            const { data } = await axios.post(
+                "/matches/swipe",
+                { targetId, type },
+                config
+            );
+
+            if (data.isMatch) {
+                toast.success(`It's a Match! 🎉`, {
+                    style: {
+                        borderRadius: '10px',
+                        background: '#0F0F0F',
+                        color: '#fff',
+                        border: '1px solid #25F45C',
+                    },
+                });
+            } else {
+                toast.success(type === 'like' ? 'Liked!' : 'Passed', {
+                    icon: type === 'like' ? '❤️' : '✖️',
+                    style: {
+                        borderRadius: '10px',
+                        background: '#0F0F0F',
+                        color: '#fff',
+                    },
+                });
+            }
+
+            // Refresh search results to update status
+            performSearch();
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to process swipe');
+        }
+    };
+
     const currentCandidate = candidates[currentIndex];
 
     return (
@@ -223,6 +296,33 @@ const Home = () => {
                 onClose={() => {
                     setShowModal(false);
                     setSelectedProfile(null);
+                }}
+                onLike={() => {
+                    if (currentCandidate && selectedProfile?._id === currentCandidate.user._id) {
+                        handleSwipe('right');
+                        setSelectedProfile(null);
+                        setShowModal(false);
+                    } else if (selectedProfile) {
+                        handleSearchSwipe(selectedProfile._id, 'like');
+                        setSelectedProfile(null);
+                    }
+                }}
+                onPass={() => {
+                    if (currentCandidate && selectedProfile?._id === currentCandidate.user._id) {
+                        handleSwipe('left');
+                        setSelectedProfile(null);
+                        setShowModal(false);
+                    } else if (selectedProfile) {
+                        handleSearchSwipe(selectedProfile._id, 'pass');
+                        setSelectedProfile(null);
+                    }
+                }}
+                onChat={() => {
+                    if (selectedProfile?.matchId) {
+                        navigate(`/chat/${selectedProfile.matchId}`);
+                        setSelectedProfile(null);
+                        setShowModal(false);
+                    }
                 }}
             />
 
@@ -299,8 +399,7 @@ const Home = () => {
                                     searchResults.map((user) => (
                                         <div
                                             key={user._id}
-                                            onClick={() => openProfile(user)}
-                                            className="flex items-center gap-4 p-4 rounded-2xl bg-gray-900/50 hover:bg-gray-800 border border-gray-800 cursor-pointer transition"
+                                            className="flex items-center gap-4 p-4 rounded-2xl bg-gray-900/50 border border-gray-800 transition"
                                         >
                                             <div className="w-14 h-14 rounded-full bg-gray-800 overflow-hidden">
                                                 {user.profile?.photos?.[0] ? (
@@ -315,13 +414,69 @@ const Home = () => {
                                                     </div>
                                                 )}
                                             </div>
-                                            <div>
+                                            <div className="flex-1">
                                                 <h3 className="text-white font-bold text-lg">
                                                     {user.name}
                                                 </h3>
                                                 <p className="text-gray-500 text-sm">
                                                     {user.profile?.city || "No Location"}
                                                 </p>
+
+                                                {/* Status Badge */}
+                                                {user.isMatched && (
+                                                    <span className="inline-flex items-center gap-1 text-primary text-xs font-bold mt-1">
+                                                        <FaHeart /> Matched
+                                                    </span>
+                                                )}
+                                                {user.interactionType === 'like' && !user.isMatched && (
+                                                    <span className="text-yellow-500 text-xs font-bold mt-1 flex items-center gap-1">
+                                                        <FaStar /> You liked them
+                                                    </span>
+                                                )}
+                                                {user.interactionType === 'pass' && (
+                                                    <span className="text-gray-500 text-xs mt-1">
+                                                        Previously passed
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Action Buttons */}
+                                            <div className="flex gap-2">
+                                                {user.isMatched ? (
+                                                    <button
+                                                        onClick={() => navigate(`/chat/${user.matchId}`)}
+                                                        className="px-4 py-2 bg-primary text-dark rounded-xl text-xs font-bold hover:shadow-[0_0_20px_#25F45C] transition"
+                                                    >
+                                                        Chat
+                                                    </button>
+                                                ) : (
+                                                    <>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleSearchSwipe(user._id, 'pass');
+                                                            }}
+                                                            className="w-10 h-10 rounded-full bg-gray-800 text-red-500 hover:bg-red-500 hover:text-white transition flex items-center justify-center"
+                                                        >
+                                                            <FaTimes />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleSearchSwipe(user._id, 'like');
+                                                            }}
+                                                            className="w-10 h-10 rounded-full bg-primary text-dark hover:shadow-[0_0_20px_#25F45C] transition flex items-center justify-center"
+                                                        >
+                                                            <FaHeart />
+                                                        </button>
+                                                    </>
+                                                )}
+                                                <button
+                                                    onClick={() => openProfile(user)}
+                                                    className="px-4 py-2 bg-gray-800 rounded-xl text-white text-xs font-bold hover:bg-gray-700 transition"
+                                                >
+                                                    View
+                                                </button>
                                             </div>
                                         </div>
                                     ))
@@ -354,6 +509,44 @@ const Home = () => {
                             <span className="text-primary">({matches.length})</span>
                         </h2>
                         <div className="space-y-4">
+                            {/* New Matches Section */}
+                            {matchNotifications.length > 0 && (
+                                <div className="mb-6">
+                                    <h3 className="text-gray-400 font-bold text-xs uppercase tracking-widest mb-3">New Matches</h3>
+                                    <div className="space-y-3">
+                                        {matchNotifications.map((notif) => (
+                                            <div key={notif._id} className="flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-primary/10 to-transparent border border-primary/30">
+                                                <div className="w-14 h-14 rounded-full bg-gray-800 overflow-hidden border-2 border-primary">
+                                                    {notif.friend?.profile?.photos?.[0] ? (
+                                                        <img
+                                                            src={notif.friend.profile.photos[0]}
+                                                            alt={notif.friend.name}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-2xl">
+                                                            🎉
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h3 className="text-white font-bold">{notif.friend?.name || 'Unknown'}</h3>
+                                                    <p className="text-primary text-xs font-bold uppercase flex items-center gap-1">
+                                                        <FaHeart /> New Match!
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    onClick={() => navigate(`/chat/${notif.matchId}`)}
+                                                    className="px-4 py-2 bg-primary text-dark rounded-xl text-xs font-bold hover:shadow-[0_0_20px_#25F45C] transition"
+                                                >
+                                                    Message
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Likes Section */}
                             {likeNotifications.length > 0 && (
                                 <div className="mb-6">
@@ -421,6 +614,53 @@ const Home = () => {
                 )}
             </AnimatePresence>
 
+            {/* Reset Confirmation Dialog */}
+            <AnimatePresence>
+                {showResetConfirm && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+                        onClick={() => setShowResetConfirm(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-gray-900 border border-gray-800 rounded-3xl p-8 max-w-md mx-4 shadow-2xl"
+                        >
+                            <div className="text-center">
+                                <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <FaSync className="text-3xl text-primary" />
+                                </div>
+                                <h2 className="text-2xl font-black text-white mb-3">
+                                    Reset Discovery?
+                                </h2>
+                                <p className="text-gray-400 mb-6">
+                                    This will clear your swipe history and show all users again, including those you've already passed or liked.
+                                </p>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => setShowResetConfirm(false)}
+                                        className="flex-1 px-6 py-3 bg-gray-800 text-white font-bold rounded-xl hover:bg-gray-700 transition"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleResetDiscovery}
+                                        className="flex-1 px-6 py-3 bg-primary text-dark font-bold rounded-xl hover:shadow-[0_0_20px_#25F45C] transition"
+                                    >
+                                        Reset
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Main Card Area */}
             <div className="flex-1 flex items-center justify-center p-4 z-20 overflow-hidden">
                 <div className="relative w-full max-w-[380px] h-full max-h-[600px] aspect-[3/4]">
@@ -452,7 +692,7 @@ const Home = () => {
                                     buddies.
                                 </p>
                                 <button
-                                    onClick={fetchRecommendations}
+                                    onClick={() => setShowResetConfirm(true)}
                                     className="px-8 py-3 bg-primary text-dark font-bold rounded-full hover:shadow-[0_0_20px_#25F45C] transition transform hover:scale-105"
                                 >
                                     Refresh List

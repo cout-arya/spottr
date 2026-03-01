@@ -122,4 +122,12 @@ const getMatches = asyncHandler(async (req, res) => {
     res.json(matches);
 });
 
-module.exports = { getRecommendations, swipe, getMatches };
+// @desc    Reset all interactions (clear swipe history)
+// @route   POST /api/matches/reset-interactions
+// @access  Private
+const resetInteractions = asyncHandler(async (req, res) => {
+    await Interaction.deleteMany({ actorId: req.user._id });
+    res.json({ message: 'Discovery reset successfully' });
+});
+
+module.exports = { getRecommendations, swipe, getMatches, resetInteractions };

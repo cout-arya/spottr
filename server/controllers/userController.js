@@ -116,19 +116,37 @@ const searchUsers = asyncHandler(async (req, res) => {
         : {};
 
     // Exclude current user from search
-    // Exclude current user from search
     const users = await User.find({ ...keyword, _id: { $ne: req.user._id } })
         .limit(20);
 
-    const usersWithScore = users.map(user => {
+    // Import models for interaction and match status
+    const { Interaction, Match } = require('../models/Match');
+
+    // Enrich each user with compatibility score, interaction status, and match status
+    const enrichedUsers = await Promise.all(users.map(async (user) => {
         const score = calculateCompatibilityScore(req.user, user);
+
+        // Check if there's an existing interaction
+        const interaction = await Interaction.findOne({
+            actorId: req.user._id,
+            targetId: user._id
+        });
+
+        // Check if there's a match
+        const match = await Match.findOne({
+            users: { $all: [req.user._id, user._id] }
+        });
+
         return {
             ...user.toObject(),
-            matchPercentage: score
+            matchPercentage: score,
+            interactionType: interaction?.type || null, // 'like' or 'pass' or null
+            isMatched: !!match,
+            matchId: match?._id || null
         };
-    });
+    }));
 
-    res.json(usersWithScore);
+    res.json(enrichedUsers);
 });
 
 module.exports = { getUserProfile, updateUserProfile, searchUsers };

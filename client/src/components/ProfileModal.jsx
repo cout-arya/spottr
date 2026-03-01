@@ -1,8 +1,8 @@
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaTimes, FaMapMarkerAlt, FaDumbbell, FaRulerCombined, FaFire, FaBed, FaBeer, FaSmoking, FaBrain, FaVenusMars, FaBullseye, FaHistory, FaCalendarAlt } from 'react-icons/fa';
+import { FaHeart, FaTimes, FaMapMarkerAlt, FaDumbbell, FaRulerCombined, FaFire, FaBed, FaBeer, FaSmoking, FaBrain, FaVenusMars, FaBullseye, FaHistory, FaCalendarAlt } from 'react-icons/fa';
 
-const ProfileModal = ({ user, onClose }) => {
+const ProfileModal = ({ user, onClose, onLike, onPass, onChat }) => {
     if (!user) return null;
 
     const { profile } = user;
@@ -32,6 +32,35 @@ const ProfileModal = ({ user, onClose }) => {
                     >
                         <FaTimes className="text-xl group-hover:rotate-90 transition-transform duration-300" />
                     </button>
+
+                    {/* Floating Action Bar (Mobile & Desktop) */}
+                    {(onLike || onChat) && (
+                        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4">
+                            {user.isMatched || user.matchId ? (
+                                <button
+                                    onClick={onChat}
+                                    className="px-8 py-3 bg-primary text-dark font-black rounded-full shadow-[0_0_20px_rgba(37,244,92,0.3)] hover:scale-105 hover:shadow-[0_0_30px_#25F45C] transition-all flex items-center gap-2"
+                                >
+                                    <FaHeart /> CHAT NOW
+                                </button>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={onPass}
+                                        className="w-14 h-14 bg-gray-900/90 backdrop-blur-xl border border-gray-700 rounded-full flex items-center justify-center text-red-500 text-2xl shadow-lg hover:scale-110 hover:border-red-500 hover:text-red-400 transition-all"
+                                    >
+                                        <FaTimes />
+                                    </button>
+                                    <button
+                                        onClick={onLike}
+                                        className="w-14 h-14 bg-primary text-dark rounded-full flex items-center justify-center text-2xl shadow-[0_0_15px_rgba(37,244,92,0.3)] hover:scale-110 hover:shadow-[0_0_30px_#25F45C] transition-all"
+                                    >
+                                        <FaHeart />
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    )}
 
                     {/* LEFT COLUMN: Immersive Visuals (45%) */}
                     <div className="w-full md:w-[45%] h-[40vh] md:h-full relative shrink-0">

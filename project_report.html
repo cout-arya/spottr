@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spottr Project Documentation</title>
+    <style>
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 850px; margin: 0 auto; padding: 40px; }
+        h1 { font-size: 2.5em; border-bottom: 2px solid #eaeaea; padding-bottom: 10px; margin-bottom: 30px; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid #eaeaea; padding-bottom: 8px; margin-top: 40px; }
+        h3 { font-size: 1.4em; margin-top: 30px; color: #2c3e50; }
+        img { max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 8px; margin: 20px 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        code { background-color: #f6f8fa; padding: 2px 6px; border-radius: 4px; font-family: Consolas, monospace; font-size: 0.9em; }
+        pre { background-color: #f6f8fa; padding: 16px; border-radius: 8px; overflow-x: auto; }
+        pre code { background-color: transparent; padding: 0; }
+        blockquote { border-left: 4px solid #4169e1; margin: 0; padding-left: 16px; color: #555; }
+        .timestamp { color: #666; font-style: italic; margin-bottom: 40px; }
+        .toc { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 40px; }
+        .toc ul { list-style-type: none; padding-left: 0; }
+        .toc li { margin-bottom: 8px; }
+        .toc a { text-decoration: none; color: #0366d6; }
+        .toc a:hover { text-decoration: underline; }
+        @media print {
+            body { max-width: 100%; padding: 0; }
+            h1 { margin-top: 0; }
+            a { text-decoration: none; color: #000; }
+            .toc { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Spottr: AI-Powered Social Fitness Platform</h1>
+    <div class="timestamp"><strong>Comprehensive Project Documentation</strong> | Date: February 6, 2026</div>
+
+    <div class="toc">
+        <h3>Table of Contents</h3>
+        <ul>
+            <li><a href="#summary">1. Executive Summary</a></li>
+            <li><a href="#features">2. Key Features</a></li>
+            <li><a href="#walkthrough">3. Application Walkthrough</a></li>
+            <li><a href="#architecture">4. Technical Architecture</a></li>
+            <li><a href="#updates">5. Recent Enhancements</a></li>
+            <li><a href="#setup">6. Setup & Deployment</a></li>
+        </ul>
+    </div>
+
+    <section id="summary">
+        <h2>1. Executive Summary</h2>
+        <p><strong>Spottr</strong> is a modern social fitness application designed to connect gym-goers with their perfect workout partners. By leveraging advanced matching algorithms and AI-powered nutrition planning, Spottr solves the problems of workout accountability and personalized fueling.</p>
+        <p>The platform combines the social discovery aspects of dating apps with the utility of fitness tracking, enhanced by a cutting-edge Retrieval-Augmented Generation (RAG) AI system for grounded nutritional advice.</p>
+    </section>
+
+    <section id="features">
+        <h2>2. Key Features</h2>
+        
+        <h3>🤝 Smart Matching System</h3>
+        <p>Connects users based on a multi-factor compatibility score:</p>
+        <ul>
+            <li><strong>Location</strong>: Geolocation-based matching (< 5km priority).</li>
+            <li><strong>Gym Preference</strong>: Commercial vs. CrossFit vs. Home Gym.</li>
+            <li><strong>Goals</strong>: Muscle Gain, Fat Loss, Strength, Endurance.</li>
+            <li><strong>Experience Level</strong>: Beginner to Advanced matching.</li>
+            <li><strong>Algorithm</strong>: <code>Score = (Goals × 25%) + (Schedule × 20%) + (Level × 15%) + (Others × 40%)</code>.</li>
+        </ul>
+
+        <h3>🥗 RAG-Powered AI Nutritionist</h3>
+        <p>Generates highly personalized diet plans grounded in verified science.</p>
+        <ul>
+            <li><strong>RAG Architecture</strong>: Retrieves context from a vector database of 30+ nutrition guidelines before generating plans.</li>
+            <li><strong>Per-Meal Regeneration</strong>: Users can regenerate specific meals (e.g., "Change Breakfast") without altering the rest of the plan.</li>
+            <li><strong>Smart Variety</strong>: Ensures menu diversity (e.g., rotating between Eggs, Parathas, South Indian items).</li>
+            <li><strong>Multi-Model Intelligence</strong>: Automatically falls back from <strong>Gemini Flash 2.0</strong> to <strong>Llama 3.3</strong> for reliability.</li>
+        </ul>
+
+        <h3>🤖 Smart Activity Logging</h3>
+        <p>Natural language processing for workout tracking.</p>
+        <ul>
+            <li><strong>Input</strong>: "Ate 3 eggs and did 5x5 squats"</li>
+            <li><strong>Output</strong>: Automatically logs protein/calories and awards XP for the workout.</li>
+        </table>
+    </section>
+
+    <section id="walkthrough">
+        <h2>3. Application Walkthrough</h2>
+
+        <h3>Landing Page</h3>
+        <p>The entry point features a high-energy, dark-themed design enticing users to "Train Harder, Together".</p>
+        <img src="assets/screenshots/landing.png" alt="Landing Page">
+
+        <h3>Profile Setup</h3>
+        <p>Users build their fitness identity, setting benchmarks (Squat/Bench/Deadlift) and preferences. This data fuels the matching algorithm.</p>
+        <img src="assets/screenshots/profile_setup.png" alt="Profile Setup">
+
+        <h3>Dashboard Command Center</h3>
+        <p>The central hub showing:</p>
+        <ul>
+            <li><strong>AI Diet Plan</strong>: With regeneration options.</li>
+            <li><strong>Smart Log</strong>: AI input field.</li>
+            <li><strong>Leaderboard</strong>: Global rankings.</li>
+        </ul>
+        <img src="assets/screenshots/dashboard.png" alt="Dashboard">
+
+        <h3>Discovery & Matching</h3>
+        <p>Swipe interface to find partners. Cards display match compatibility scores and shared goals.</p>
+        <img src="assets/screenshots/discovery.png" alt="Discovery">
+
+        <h3>Real-Time Chat</h3>
+        <p>Instant messaging with matched users to coordinate workouts and share motivation.</p>
+        <img src="assets/screenshots/chat.png" alt="Chat">
+    </section>
+
+    <section id="architecture">
+        <h2>4. Technical Architecture</h2>
+
+        <h3>Tech Stack</h3>
+        <ul>
+            <li><strong>Frontend</strong>: React.js, Tailwind CSS, Framer Motion (Animations)</li>
+            <li><strong>Backend</strong>: Node.js, Express.js</li>
+            <li><strong>Database</strong>: MongoDB (Data), JSON-based Vector Store (Embeddings)</li>
+            <li><strong>AI/ML</strong>: OpenRouter (Gemini/Llama), Vector Search</li>
+            <li><strong>Real-Time</strong>: Socket.io for Chat and Notifications</li>
+        </ul>
+
+        <h3>RAG System Flow</h3>
+        <ol>
+            <li><strong>User Request</strong>: "Generate Muscle Gain Plan"</li>
+            <li><strong>Retrieval</strong>: System queries vector DB for "Muscle Gain Nutrition"</li>
+            <li><strong>Context</strong>: Retrieves verified chunks (e.g., protein targets, food sources)</li>
+            <li><strong>Generation</strong>: Injects context into LLM prompt</li>
+            <li><strong>Output</strong>: Grounded, scientifically accurate diet plan</li>
+        </ol>
+    </section>
+
+    <section id="updates">
+        <h2>5. Recent Enhancements (Feb 2026)</h2>
+        
+        <h3>System Stability (v1.2)</h3>
+        <p>Implemented <strong>Auto-Fallback Logic</strong>: If Gemini AI is busy, the system automatically switches to Llama 3.3 to prevent service outages. Enhanced server startup scripts to auto-kill stale processes.</p>
+
+        <h3>Per-Meal Regeneration (v1.1)</h3>
+        <p>Added dedicated API endpoints for regenerating single meals using RAG. Refined prompt engineering to drastically improve meal variety, specifically targeting Indian breakfast options.</p>
+    </section>
+
+    <section id="setup">
+        <h2>6. Setup & Deployment</h2>
+        <pre><code># 1. Clone Repository
+git clone [repo-url]
+
+# 2. Install Dependencies
+npm install
+cd client && npm install
+cd server && npm install
+
+# 3. Run Application
+npm run dev</code></pre>
+        <ul>
+            <li>Frontend: <code>http://localhost:3000</code></li>
+            <li>Backend: <code>http://localhost:5000</code></li>
+        </ul>
+    </section>
+
+    <footer style="margin-top: 50px; border-top: 1px solid #eaeaea; padding-top: 20px; text-align: center; color: #888; font-size: 0.9em;">
+        Generated by Antigravity AI Assistant | Spottr 2026
+    </footer>
+
+</body>
+</html>
