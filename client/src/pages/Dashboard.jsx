@@ -175,9 +175,8 @@ const Dashboard = () => {
   if (loading) return <div className="p-8 text-white">Loading Dashboard...</div>;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 p-8 pb-12 min-h-screen font-sans">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-end gap-6 border-b border-gray-800 pb-8">
+    <div className="max-w-7xl mx-auto space-y-6 md:space-y-8 p-4 md:p-8 pb-24 md:pb-12 min-h-[100dvh] font-sans">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-gray-800 pb-6 md:pb-8">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <span className="text-primary text-xs font-bold tracking-[0.2em] uppercase animate-pulse">
@@ -246,7 +245,7 @@ const Dashboard = () => {
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none" />
 
-            <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-10 relative z-10">
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 md:gap-6 mb-8 md:mb-10 relative z-10">
               <div>
                 <div className="flex items-center gap-3 mb-2">
                   <div className="p-2 bg-gradient-to-br from-primary to-green-600 rounded-lg text-black shadow-lg shadow-primary/20">
@@ -263,7 +262,7 @@ const Dashboard = () => {
               <button
                 onClick={handleGenerateDiet}
                 disabled={loadingDiet}
-                className="px-6 py-3 bg-[#25F45C] hover:bg-[#1ee350] text-black font-black rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(37,244,92,0.3)] hover:shadow-[0_0_20px_rgba(37,244,92,0.5)] flex items-center gap-2"
+                className="w-full md:w-auto mt-4 md:mt-0 px-6 py-3 bg-[#25F45C] hover:bg-[#1ee350] text-black font-black rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(37,244,92,0.3)] hover:shadow-[0_0_20px_rgba(37,244,92,0.5)] flex justify-center items-center gap-2"
               >
                 {loadingDiet ? <span className="animate-spin">⌛</span> : <span className="text-xl">🔄</span>}
                 {loadingDiet ? "COOKING..." : (plans?.diet ? "REGENERATE" : "CREATE PLAN")}

@@ -6,6 +6,8 @@ const connectDB = require('./config/db');
 const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5173',
     'https://spottr-1.onrender.com'
 ];
 
@@ -91,6 +93,6 @@ io.on('connection', (socket) => {
 });
 
 // Server is running (Restart Triggered v3)
-server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+server.listen(PORT, '127.0.0.1', () => {
+    console.log(`Server running on port ${PORT} (restricted to localhost)`);
 });

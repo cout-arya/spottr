@@ -115,11 +115,39 @@ const swipe = asyncHandler(async (req, res) => {
 // @route   GET /api/matches
 // @access  Private
 const getMatches = asyncHandler(async (req, res) => {
-    const matches = await Match.find({ users: req.user._id })
-        .populate('users', 'name profile.photos profile.city'); // Populate basic info
+    const Message = require('../models/Message');
 
-    // Filter out self from the users array in response if wanted, or frontend handles it
-    res.json(matches);
+    const matches = await Match.find({ users: req.user._id })
+        .populate('users', 'name profile.photos profile.city profile.fitnessLevel profile.gymType profile.availability');
+
+    // Enrich each match with lastMessage and unreadCount
+    const enrichedMatches = await Promise.all(matches.map(async (match) => {
+        const lastMessage = await Message.findOne({ matchId: match._id })
+            .sort({ createdAt: -1 })
+            .select('content senderId createdAt readAt')
+            .lean();
+
+        const unreadCount = await Message.countDocuments({
+            matchId: match._id,
+            senderId: { $ne: req.user._id },
+            readAt: null
+        });
+
+        return {
+            ...match.toObject(),
+            lastMessage: lastMessage || null,
+            unreadCount
+        };
+    }));
+
+    // Sort by last message time (most recent first), matches without messages go last
+    enrichedMatches.sort((a, b) => {
+        const timeA = a.lastMessage?.createdAt || a.createdAt;
+        const timeB = b.lastMessage?.createdAt || b.createdAt;
+        return new Date(timeB) - new Date(timeA);
+    });
+
+    res.json(enrichedMatches);
 });
 
 // @desc    Reset all interactions (clear swipe history)

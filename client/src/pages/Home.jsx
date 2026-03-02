@@ -39,7 +39,7 @@ const Home = () => {
     useEffect(() => {
         if (!user) return;
 
-        const socket = io('http://localhost:5000');
+        const socket = io('http://127.0.0.1:5000');
         socket.emit('setup', user);
 
         socket.on('match found', (newMatch) => {
@@ -281,7 +281,7 @@ const Home = () => {
     const currentCandidate = candidates[currentIndex];
 
     return (
-        <div className="relative w-full h-screen bg-black flex flex-col overflow-hidden font-sans">
+        <div className="relative w-full h-[calc(100dvh-4rem)] lg:h-screen bg-black flex flex-col overflow-hidden font-sans w-full">
             {/* Modal */}
             <ProfileModal
                 user={
@@ -330,7 +330,7 @@ const Home = () => {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-gray-900/40 via-black to-black pointer-events-none"></div>
 
             {/* Top Bar */}
-            <div className="w-full h-20 px-6 flex justify-between items-center relative z-40 bg-gradient-to-b from-black via-black/80 to-transparent">
+            <div className="w-full h-16 md:h-20 px-4 md:px-6 flex justify-between items-center relative z-40 bg-gradient-to-b from-black via-black/80 to-transparent">
                 {/* Logo/Context */}
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gray-900 rounded-full flex items-center justify-center border border-gray-800">
@@ -383,7 +383,7 @@ const Home = () => {
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
-                        className="absolute top-20 left-0 w-full h-[calc(100vh-80px)] z-30 bg-black/95 backdrop-blur-xl p-6 overflow-y-auto"
+                        className="absolute top-16 md:top-20 left-0 w-full h-[calc(100dvh-4rem-4rem)] lg:h-[calc(100vh-80px)] z-30 bg-black/95 backdrop-blur-xl p-4 md:p-6 overflow-y-auto"
                     >
                         <div className="max-w-2xl mx-auto">
                             <input
@@ -502,7 +502,7 @@ const Home = () => {
                         initial={{ opacity: 0, x: 50 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 50 }}
-                        className="absolute top-20 right-0 w-full md:w-96 h-[calc(100vh-80px)] z-30 bg-gray-900/95 backdrop-blur-xl border-l border-gray-800 p-6 overflow-y-auto"
+                        className="absolute top-16 md:top-20 right-0 w-full md:w-96 h-[calc(100dvh-4rem-4rem)] lg:h-[calc(100vh-80px)] z-30 bg-gray-900/95 backdrop-blur-xl border-l border-gray-800 p-4 md:p-6 overflow-y-auto"
                     >
                         <h2 className="text-white font-black text-2xl mb-6">
                             It's a Match!{" "}
@@ -662,8 +662,8 @@ const Home = () => {
             </AnimatePresence>
 
             {/* Main Card Area */}
-            <div className="flex-1 flex items-center justify-center p-4 z-20 overflow-hidden">
-                <div className="relative w-full max-w-[380px] h-full max-h-[600px] aspect-[3/4]">
+            <div className="flex-1 flex flex-col items-center justify-center p-2 md:p-4 z-20 overflow-hidden min-h-0 w-full">
+                <div className="relative w-full max-w-[380px] h-[70vh] max-h-[600px] flex-shrink-0">
                     <AnimatePresence>
                         {currentCandidate ? (
                             <SwipeCard
@@ -704,7 +704,7 @@ const Home = () => {
             </div>
 
             {/* Bottom Action Bar */}
-            <div className="h-28 flex items-center justify-center gap-6 z-30 shrink-0 pb-4">
+            <div className="h-20 lg:h-28 flex items-center justify-center gap-4 lg:gap-6 z-30 shrink-0 pb-2 lg:pb-4">
                 {currentCandidate && (
                     <>
                         <button

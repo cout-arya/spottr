@@ -27,6 +27,30 @@ const getMessages = asyncHandler(async (req, res) => {
         .skip(pageSize * (page - 1))
         .populate('senderId', 'name profile.photos');
 
+    // Auto-mark messages from the OTHER user as read
+    const now = new Date();
+    await Message.updateMany(
+        {
+            matchId,
+            senderId: { $ne: req.user._id },
+            readAt: null
+        },
+        { $set: { readAt: now } }
+    );
+
+    // Notify sender via socket that their messages were read
+    const io = req.app.get('io');
+    if (io) {
+        const partnerId = match.users.find(u => u.toString() !== req.user._id.toString());
+        if (partnerId) {
+            io.to(partnerId.toString()).emit('messages read', {
+                matchId,
+                readAt: now,
+                readBy: req.user._id
+            });
+        }
+    }
+
     res.json(messages.reverse());
 });
 
@@ -65,4 +89,51 @@ const sendMessage = asyncHandler(async (req, res) => {
     res.json(fullMessage);
 });
 
-module.exports = { getMessages, sendMessage };
+// @desc    Mark messages as read
+// @route   PUT /api/chat/:matchId/read
+// @access  Private
+const markAsRead = asyncHandler(async (req, res) => {
+    const matchId = req.params.matchId;
+
+    // Verify user is part of match
+    const match = await Match.findById(matchId);
+    if (!match) {
+        res.status(404);
+        throw new Error('Match not found');
+    }
+    if (!match.users.includes(req.user._id)) {
+        res.status(401);
+        throw new Error('Not authorized');
+    }
+
+    const now = new Date();
+
+    // Mark all unread messages from partner as read
+    const result = await Message.updateMany(
+        {
+            matchId,
+            senderId: { $ne: req.user._id },
+            readAt: null
+        },
+        { $set: { readAt: now } }
+    );
+
+    // Notify the sender via socket
+    if (result.modifiedCount > 0) {
+        const io = req.app.get('io');
+        if (io) {
+            const partnerId = match.users.find(u => u.toString() !== req.user._id.toString());
+            if (partnerId) {
+                io.to(partnerId.toString()).emit('messages read', {
+                    matchId,
+                    readAt: now,
+                    readBy: req.user._id
+                });
+            }
+        }
+    }
+
+    res.json({ success: true, readAt: now, modifiedCount: result.modifiedCount });
+});
+
+module.exports = { getMessages, sendMessage, markAsRead };
