@@ -92,7 +92,8 @@ io.on('connection', (socket) => {
     socket.on('stop typing', (room) => socket.in(room).emit('stop typing'));
 });
 
-// Server is running (Restart Triggered v3)
-server.listen(PORT, '127.0.0.1', () => {
-    console.log(`Server running on port ${PORT} (restricted to localhost)`);
+// Bind to 0.0.0.0 in production (Render requires it), 127.0.0.1 locally (avoids firewall prompt)
+const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1';
+server.listen(PORT, HOST, () => {
+    console.log(`Server running on ${HOST}:${PORT}`);
 });
