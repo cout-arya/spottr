@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 
 const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const { login, user } = useAuth(); // Consolidated destructuring
+    const { login, googleLogin, user } = useAuth(); // Consolidated destructuring
     const navigate = useNavigate();
     const [error, setError] = useState('');
 
@@ -72,6 +73,30 @@ const Login = () => {
                         Sign In
                     </button>
                 </form>
+
+                <div className="mt-8 flex flex-col items-center gap-4">
+                    <div className="w-full flex items-center gap-2">
+                        <div className="flex-1 h-px bg-gray-800"></div>
+                        <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">or sign in with</span>
+                        <div className="flex-1 h-px bg-gray-800"></div>
+                    </div>
+
+                    <GoogleLogin
+                        onSuccess={async (credentialResponse) => {
+                            try {
+                                await googleLogin(credentialResponse.credential);
+                                navigate('/home', { replace: true });
+                            } catch (err) {
+                                setError(err.response?.data?.message || err.message || 'Google Login Failed');
+                            }
+                        }}
+                        onError={() => {
+                            setError('Google Login Failed');
+                        }}
+                        theme="filled_black"
+                        shape="pill"
+                    />
+                </div>
 
                 <div className="mt-8 text-center border-t border-gray-800 pt-6">
                     <span className="text-gray-500 text-sm">Don't have an account? </span>

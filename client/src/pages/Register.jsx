@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 
 const Register = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const { register } = useAuth();
+    const { register, googleLogin } = useAuth();
     const navigate = useNavigate();
     const [message, setMessage] = useState(null);
     const [error, setError] = useState('');
@@ -100,6 +101,30 @@ const Register = () => {
                         Create Account
                     </button>
                 </form>
+
+                <div className="mt-8 flex flex-col items-center gap-4">
+                    <div className="w-full flex items-center gap-2">
+                        <div className="flex-1 h-px bg-gray-800"></div>
+                        <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">or sign in with</span>
+                        <div className="flex-1 h-px bg-gray-800"></div>
+                    </div>
+
+                    <GoogleLogin
+                        onSuccess={async (credentialResponse) => {
+                            try {
+                                await googleLogin(credentialResponse.credential);
+                                navigate('/profile-setup', { replace: true });
+                            } catch (err) {
+                                setError(err.response?.data?.message || err.message || 'Google Login Failed');
+                            }
+                        }}
+                        onError={() => {
+                            setError('Google Login Failed');
+                        }}
+                        theme="filled_black"
+                        shape="pill"
+                    />
+                </div>
 
                 <div className="mt-8 text-center border-t border-gray-800 pt-6">
                     <span className="text-gray-500 text-sm">Already a member? </span>
