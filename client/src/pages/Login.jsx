@@ -81,21 +81,23 @@ const Login = () => {
                         <div className="flex-1 h-px bg-gray-800"></div>
                     </div>
 
-                    <GoogleLogin
-                        onSuccess={async (credentialResponse) => {
-                            try {
-                                await googleLogin(credentialResponse.credential);
-                                navigate('/home', { replace: true });
-                            } catch (err) {
-                                setError(err.response?.data?.message || err.message || 'Google Login Failed');
-                            }
-                        }}
-                        onError={() => {
-                            setError('Google Login Failed');
-                        }}
-                        theme="filled_black"
-                        shape="pill"
-                    />
+                    <div style={{ colorScheme: 'light' }} className="rounded-full overflow-hidden flex justify-center mx-auto shadow-none border-none">
+                        <GoogleLogin
+                            onSuccess={async (credentialResponse) => {
+                                try {
+                                    await googleLogin(credentialResponse.credential);
+                                    navigate('/home', { replace: true });
+                                } catch (err) {
+                                    setError(err.response?.data?.message || err.message || 'Google Login Failed');
+                                }
+                            }}
+                            onError={() => {
+                                setError('Google Login Failed');
+                            }}
+                            theme="filled_black"
+                            shape="pill"
+                        />
+                    </div>
                 </div>
 
                 <div className="mt-8 text-center border-t border-gray-800 pt-6">
