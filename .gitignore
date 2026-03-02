@@ -23,8 +23,7 @@ build/
 .DS_Store
 Thumbs.db
 
-# RAG Vector Database (large file)
-server/data/vectors/*.json
+
 
 # Temporary files
 *.tmp
