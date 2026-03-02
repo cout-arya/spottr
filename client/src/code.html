@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GymSync | Chat</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#102216",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(13, 242, 89, 0.1);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 antialiased overflow-hidden">
+<div class="flex h-screen w-full overflow-hidden">
+<!-- Sidebar Navigation -->
+<aside class="w-20 md:w-64 border-r border-primary/10 flex flex-col bg-background-light dark:bg-background-dark shrink-0">
+<div class="p-6 flex items-center gap-3">
+<div class="bg-primary p-2 rounded-lg">
+<span class="material-symbols-outlined text-background-dark font-bold">exercise</span>
+</div>
+<h1 class="hidden md:block text-xl font-bold tracking-tight text-primary uppercase">GymSync</h1>
+</div>
+<div class="px-4 py-2">
+<button class="w-full bg-primary hover:bg-primary/90 text-background-dark font-bold py-3 rounded-full flex items-center justify-center gap-2 transition-all">
+<span class="material-symbols-outlined">add_circle</span>
+<span class="hidden md:block">New Workout</span>
+</button>
+</div>
+<nav class="flex-1 overflow-y-auto custom-scrollbar px-3 space-y-2 mt-4">
+<div class="hidden md:block text-[10px] uppercase tracking-widest text-primary/50 font-bold px-4 mb-2">Recent Chats</div>
+<!-- Chat Item Active -->
+<div class="flex items-center gap-3 p-3 rounded-xl bg-primary/10 border border-primary/20 cursor-pointer">
+<div class="relative">
+<img class="w-12 h-12 rounded-full object-cover" data-alt="Female fitness athlete profile picture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDrSlyYYXtAaf0ZCIAYSbXldArT7MCnJsUsyCkgA8NoFfeKEnGAWVqLcSleJk6HX3OQinth91IUVxTWHOr02zYJjV_uy6hSH0rWQdzkUa4OqCcvQFcP3N5PfzxmorovcSRp9LfHx___WTxBoe7OCu8t9xpYxwpiiB5pfqBNY4t4oDiKAicxGoXMicYTuOBlSZyM7jfq8IotE-GMxZ-8mYLsuloo5K2hgG0FtCbJquyWdKzd7kH3qeJsZrJfacKkAgjzOfGlVYOyFQ"/>
+<div class="absolute bottom-0 right-0 w-3 h-3 bg-primary rounded-full border-2 border-background-dark"></div>
+</div>
+<div class="hidden md:block flex-1 min-w-0">
+<div class="flex justify-between items-baseline">
+<h3 class="font-bold text-sm truncate">Sarah</h3>
+<span class="text-[10px] text-primary">2m</span>
+</div>
+<p class="text-xs text-slate-400 truncate font-medium italic">Ready for the WOD?</p>
+</div>
+</div>
+<!-- Chat Item -->
+<div class="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 cursor-pointer transition-colors group">
+<div class="relative">
+<img class="w-12 h-12 rounded-full object-cover grayscale group-hover:grayscale-0 transition-all" data-alt="Male bodybuilder profile picture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsxpShAgyeu-KjZ82l1qDa0iSzA8kFQ8he5-iyQBvsx39VIU_rtcNSVECnKL_Ci7NtJP7kwzx2orEH1i39vyyQIyMMCHq7A_H96oj5GUqszaFtwMvHglgHdWFapeZ7QJU0W8nNiAJr1v2WIIegkAE-Sbiz2Z4D_CN3GPPK4aWvtBapOVpSJhOXlORZosknNKsVDIYhAxzRH5oqubDN9Jb0z6R4gNMe75flgIq-YSebv1osMnHsUVzQplmXHffb3dWNEajy5x9_4w"/>
+</div>
+<div class="hidden md:block flex-1 min-w-0">
+<div class="flex justify-between items-baseline">
+<h3 class="font-bold text-sm truncate">Marcus</h3>
+<span class="text-[10px] text-slate-500">1h</span>
+</div>
+<p class="text-xs text-slate-500 truncate">Let's hit legs tomorrow.</p>
+</div>
+</div>
+<!-- Chat Item -->
+<div class="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 cursor-pointer transition-colors group">
+<div class="relative">
+<img class="w-12 h-12 rounded-full object-cover grayscale group-hover:grayscale-0 transition-all" data-alt="Woman in activewear profile picture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAK2JPGMj3xNnhiFbrOhsX3Pb1hrwdoJrMz5kbq9-Zlq0Ouj_ts7P5gt_wsjOGjjc1agKHytImANzeCDOAZ7z0ILxp-GRkmEL1yR81x9UluEQtX0nbhkiGWuVPShic8u3Nky6oKBOdC_tiskbcDI1JcUWWqxeJIz6E5ntjO-IzKbnHmV3-ayTglK-irUE-GNEldy2_MEXKPOqaaxR4vb8FadaU6HDCfjXjcJW4t0ki67axTFN12FWBx3t-3vomEElzsEwQZnXatTQ"/>
+</div>
+<div class="hidden md:block flex-1 min-w-0">
+<div class="flex justify-between items-baseline">
+<h3 class="font-bold text-sm truncate">Elena</h3>
+<span class="text-[10px] text-slate-500">3h</span>
+</div>
+<p class="text-xs text-slate-500 truncate">Sent a photo</p>
+</div>
+</div>
+</nav>
+<div class="p-4 border-t border-primary/10">
+<div class="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 cursor-pointer transition-colors">
+<span class="material-symbols-outlined text-primary">settings</span>
+<span class="hidden md:block text-sm font-medium">Settings</span>
+</div>
+</div>
+</aside>
+<!-- Main Chat Area -->
+<main class="flex-1 flex flex-col relative bg-white/5 md:bg-transparent">
+<!-- Chat Header -->
+<header class="h-20 border-b border-primary/10 flex items-center justify-between px-6 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md z-10">
+<div class="flex items-center gap-4">
+<div class="relative md:hidden">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="Sarah profile picture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBDnF9XGqPwzduwHy49Q2Lewsbi5oQvEQ5drYoGCr2vsEEdeyVYt1joFrt-FLdYeEGRbrj6Nox-emBRtYGil9BsSlqOvr4fZeO5tIDl8FBg3UPqYOLwb9ijkpP3c2Np6uQctmKu86GEg91aNlS1xb29p-PcLNLrRFNJ5kN0G3xyvF7zS4ZIU6Sp7ugORJ-P1Jf-qBPKpNKyjS3Jjz2SudbTMvMghxIoeuylqgRD0dzIUYMFdQx2d84-VQpoKMAg5gVlm3G5P1faYg"/>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h2 class="text-lg font-bold">Sarah, 26</h2>
+<span class="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
+</div>
+<div class="flex gap-2 mt-1">
+<span class="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider border border-primary/20">CrossFit</span>
+<span class="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[10px] font-bold uppercase tracking-wider">Early Bird</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 md:gap-4">
+<button class="p-2 rounded-full hover:bg-primary/10 text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">call</span>
+</button>
+<button class="p-2 rounded-full hover:bg-primary/10 text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">videocam</span>
+</button>
+<button class="p-2 rounded-full hover:bg-primary/10 text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">info</span>
+</button>
+</div>
+</header>
+<!-- Messages Area -->
+<div class="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+<div class="flex justify-center">
+<span class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] bg-slate-800/30 px-3 py-1 rounded-full">Today</span>
+</div>
+<!-- Receiver Message -->
+<div class="flex gap-3 max-w-[80%]">
+<img class="w-8 h-8 rounded-full self-end object-cover" data-alt="Sarah profile picture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAkeGWVyuesZ1OOftpQAcEGKmwV6eFlNqoQYJErgMj5C41aXPGDuup5q4osHF-zYqZmdq8FogbVie8Ft0ZkE4AyJTQjNCvCxO8X1IkRMz-iEDaxcXQrqcfOAA2cKB0RBD39gxyF3lyJa30bWDek1uX38YAnmR1zWZCYaM4qdEwPx8p-AOu1NRIilp2Ch3-HmLFIY3NglGRYiTmRuqwES3Fxz453iCjkxpKS0eg6ycsRy9scn90AaJK_kRNPmOzfvP3PE_ChAhoWUA"/>
+<div class="flex flex-col gap-1">
+<div class="bg-slate-800 dark:bg-slate-800/80 p-4 rounded-t-2xl rounded-r-2xl text-sm font-medium leading-relaxed">
+                            Hey! Are we still hitting the WOD at 6am tomorrow? I'm feeling extra motivated after today's session.
+                        </div>
+<span class="text-[10px] text-slate-500 font-medium">08:42 PM</span>
+</div>
+</div>
+<!-- Sender Message -->
+<div class="flex gap-3 max-w-[80%] ml-auto flex-row-reverse">
+<div class="flex flex-col items-end gap-1">
+<div class="bg-primary text-background-dark p-4 rounded-t-2xl rounded-l-2xl text-sm font-bold leading-relaxed shadow-lg shadow-primary/10">
+                            100% Sarah! Let's do it. I'm bringing the energy. 🔥
+                        </div>
+<div class="flex items-center gap-1">
+<span class="text-[10px] text-slate-500 font-medium">08:45 PM</span>
+<span class="material-symbols-outlined text-[12px] text-primary">done_all</span>
+</div>
+</div>
+</div>
+<!-- System / Workout Message -->
+<div class="flex justify-center my-8">
+<div class="bg-gradient-to-br from-primary/20 to-transparent border border-primary/30 p-4 rounded-2xl max-w-sm w-full">
+<div class="flex items-center gap-4">
+<div class="bg-primary rounded-xl p-3 shadow-lg">
+<span class="material-symbols-outlined text-background-dark font-bold">fitness_center</span>
+</div>
+<div class="flex-1">
+<h4 class="font-bold text-sm uppercase tracking-tight text-primary">Pre-Workout Invite</h4>
+<p class="text-xs text-slate-300">Level 4 CrossFit WOD • Downtown Gym</p>
+</div>
+</div>
+<div class="mt-4 flex gap-2">
+<button class="flex-1 py-2 rounded-lg bg-primary text-background-dark font-bold text-xs uppercase tracking-wider">Accept Invite</button>
+<button class="px-4 py-2 rounded-lg bg-slate-800 text-white font-bold text-xs uppercase tracking-wider">Decline</button>
+</div>
+</div>
+</div>
+<!-- Receiver Message -->
+<div class="flex gap-3 max-w-[80%]">
+<img class="w-8 h-8 rounded-full self-end object-cover" data-alt="Sarah profile picture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBq233EESpx1N31t8Lih3qso7L638dkNUr05i7bIfJZJ8PfPf0zlmvoBcjLDx6uSucbFCgkXc1f6z2rKp5q2MME4zfyocOXEyQZgksmaH5DXOSeO0ZmR72Vh3g5ow2B8WiJhcwXicGOlWEb_m_TpL2WkW-L109aJMAY8aqJ5yuwU0lA0vASK-TyVGePNF_81Kc2E_Ug1HIb2vzbuW4brh4rhQPClni2nFhjrpjKYxy351IcsjlwDXHEmxyrQK_WSjEgWQuYrtRUSw"/>
+<div class="flex flex-col gap-1">
+<div class="bg-slate-800 dark:bg-slate-800/80 p-4 rounded-t-2xl rounded-r-2xl text-sm font-medium leading-relaxed">
+                            Awesome! Don't forget to pack those wrist wraps, tomorrow is snatch day.
+                        </div>
+<span class="text-[10px] text-slate-500 font-medium">08:48 PM</span>
+</div>
+</div>
+</div>
+<!-- Input Area -->
+<footer class="p-6 bg-background-light dark:bg-background-dark/80 backdrop-blur-sm border-t border-primary/10">
+<div class="max-w-4xl mx-auto">
+<div class="flex gap-3 mb-3">
+<button class="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all">
+<span class="material-symbols-outlined text-sm">bolt</span>
+                            Workout Invite
+                        </button>
+<button class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all">
+<span class="material-symbols-outlined text-sm">location_on</span>
+                            Share Gym
+                        </button>
+</div>
+<div class="relative flex items-center gap-3">
+<div class="flex items-center gap-1">
+<button class="p-2 text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">add_circle</span>
+</button>
+<button class="p-2 text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">image</span>
+</button>
+</div>
+<div class="flex-1 relative">
+<input class="w-full bg-slate-800/50 border border-primary/10 focus:border-primary/40 focus:ring-0 rounded-full py-4 pl-6 pr-14 text-sm font-medium placeholder:text-slate-500" placeholder="Send a message to Sarah..." type="text"/>
+<button class="absolute right-2 top-2 w-10 h-10 bg-primary text-background-dark rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined font-bold">send</span>
+</button>
+</div>
+<button class="p-2 text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">mic</span>
+</button>
+</div>
+</div>
+</footer>
+</main>
+<!-- Right Detail Panel (Collapsible on Mobile) -->
+<aside class="hidden xl:flex w-80 border-l border-primary/10 flex-col p-8 space-y-8 bg-background-light dark:bg-background-dark">
+<div class="text-center">
+<div class="relative inline-block">
+<img class="w-32 h-32 rounded-3xl object-cover border-2 border-primary" data-alt="Sarah large profile picture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCEQmFNlxHBVaANJ5gpC9QKe0lLfyHUi2-fz55Tc6iXOvFzGiI5TCuFVEy05E6pQ90KiU-SE98YI4Mb80qpHT2Z3OQiE0-AaTrpfLWGu4ia8QHTR2rgtF-9pia-8VDxPIq117qoNXmgeowaMK5vW-rIgqq1H6W5F170RMrs9mVisjbiMOvIiuzet0uaS9jO2S0q8QTBTMl1XZibdG_4FSawVvsz_npKVDtACKKdsQN_6oQqIxd6-yMROMb9zIDI5ScDKBqSPH69bA"/>
+<div class="absolute -bottom-2 -right-2 bg-primary text-background-dark p-2 rounded-xl shadow-xl">
+<span class="material-symbols-outlined text-sm font-bold">verified</span>
+</div>
+</div>
+<h2 class="mt-6 text-2xl font-bold italic uppercase tracking-tighter">Sarah Miller</h2>
+<p class="text-primary text-sm font-bold">CrossFit Athlete • Pro</p>
+</div>
+<div class="space-y-4">
+<h3 class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Stats</h3>
+<div class="grid grid-cols-2 gap-3">
+<div class="bg-slate-800/50 p-4 rounded-2xl border border-primary/5">
+<p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Level</p>
+<p class="text-lg font-bold text-primary">Elite</p>
+</div>
+<div class="bg-slate-800/50 p-4 rounded-2xl border border-primary/5">
+<p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Streak</p>
+<p class="text-lg font-bold text-primary">12d</p>
+</div>
+</div>
+</div>
+<div class="space-y-4">
+<h3 class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Recent Media</h3>
+<div class="grid grid-cols-3 gap-2">
+<img class="aspect-square rounded-lg object-cover" data-alt="Workout photo 1" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCLJRF5e59ybDz5bQRj-7KB5kXwpzFxh5xsdknJeTemNQHCdgDwctvChmoiq7MGwLkXYFD3fDFg31Q-ytAW8eEFkHxFXskvm_BpjkpuVoWTpPkop1xxn4DAV-oOQHbwFUyBIARZZyLKodWg16jk66ttxtNWwJ0-T4ZjkkKtWqbQFUaavRTGG6WizyK_Te0rzphj6B4el49k8xHBeLAjjQ3qdIfvVyubmV1c8YsavpwxPdCAyLrPEq5vZdRkbpabDEP3Dkbp6rKbBw"/>
+<img class="aspect-square rounded-lg object-cover" data-alt="Workout photo 2" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6PKwN-iJyAlWIBNhH_pVsQnoGBVqZ8qFT7fsTLc4ez6TEhNQt1fPbn5qAezwTuNP6VIDPoLwoy-tkGXmn7MGYATBdtQeU5PpgbHwPRFrkS0laq3vtPl7ctAwS4Tkahh39I9u3h80Y3q6O85LHVK1VIAJFb8kkUQUV3fyHXihVysDLK7YNfWRQq21ftgMjRlbitKFmY07OPs8dARPelFSTyDdn3-pETNK98fcDVV-WRFwjXjxHzahF_qs3F5qtoNinb4cfJxfmxg"/>
+<img class="aspect-square rounded-lg object-cover" data-alt="Workout photo 3" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC5EJG_kpqEVncV_AUuI_s3toltkNdIWX7c8fec7zakbyt39HcR00sU7KklCXX9NCeI7IlSTmBIj8L_HjZes_gMo5t9qk94rj-QxtxDGUdEMUc-JNC8tfq8t4029bjKo6F4ZFLhJM2-yNvPsnP9dLCeOxNYmlPZtVWL5xEjtsN_lLzSwLoiO1hzlqvd075cmlT3hYr87uTYlnuV2Ioq4IhLbGOJdqioaldebZDHAphRJFRx10PxQcPPRExPgjBNQq8PDFAULLbtBQ"/>
+</div>
+</div>
+<div class="flex-1 flex flex-col justify-end">
+<button class="w-full border border-red-500/30 hover:bg-red-500/10 text-red-500 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm">block</span>
+                    Unpair Partner
+                </button>
+</div>
+</aside>
+</div>
+</body></html>
