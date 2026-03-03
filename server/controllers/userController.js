@@ -28,13 +28,12 @@ const getUserProfile = asyncHandler(async (req, res) => {
 // @route   PUT /api/users/profile
 // @access  Private
 const updateUserProfile = asyncHandler(async (req, res) => {
+    console.log('[DEBUG] Hit updateUserProfile endpoint!');
     const user = await User.findById(req.user._id);
 
     if (user) {
         user.name = req.body.name || user.name;
         if (req.body.profile) {
-            console.log('[DEBUG] Incoming Profile Update:', JSON.stringify(req.body.profile, null, 2));
-
             // Safely update profile fields
             for (const key in req.body.profile) {
                 user.profile[key] = req.body.profile[key];
@@ -76,7 +75,6 @@ const updateUserProfile = asyncHandler(async (req, res) => {
         }
 
         try {
-            console.log("Updating Profile with:", JSON.stringify(req.body.profile, null, 2));
             const updatedUser = await user.save();
 
             res.json({

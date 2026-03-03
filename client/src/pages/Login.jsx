@@ -28,7 +28,7 @@ const Login = () => {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-black relative overflow-hidden">
+        <div className="flex flex-col items-center justify-center min-h-[100dvh] pb-10 bg-black relative overflow-hidden">
             {/* Background Decoration */}
             <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] pointer-events-none animate-pulse-slow"></div>
             <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none"></div>

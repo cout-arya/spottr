@@ -383,7 +383,7 @@ const Home = () => {
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
-                        className="absolute top-16 md:top-20 left-0 w-full h-[calc(100dvh-4rem-4rem)] lg:h-[calc(100vh-80px)] z-30 bg-black/95 backdrop-blur-xl p-4 md:p-6 overflow-y-auto"
+                        className="absolute top-16 md:top-20 left-0 w-full h-[calc(100dvh-4rem-4rem)] lg:h-[calc(100dvh-80px)] z-30 bg-black/95 backdrop-blur-xl p-4 md:p-6 overflow-y-auto"
                     >
                         <div className="max-w-2xl mx-auto">
                             <input
@@ -502,7 +502,7 @@ const Home = () => {
                         initial={{ opacity: 0, x: 50 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 50 }}
-                        className="absolute top-16 md:top-20 right-0 w-full md:w-96 h-[calc(100dvh-4rem-4rem)] lg:h-[calc(100vh-80px)] z-30 bg-gray-900/95 backdrop-blur-xl border-l border-gray-800 p-4 md:p-6 overflow-y-auto"
+                        className="absolute top-16 md:top-20 right-0 w-full md:w-96 h-[calc(100dvh-4rem-4rem)] lg:h-[calc(100dvh-80px)] z-30 bg-gray-900/95 backdrop-blur-xl border-l border-gray-800 p-4 md:p-6 overflow-y-auto"
                     >
                         <h2 className="text-white font-black text-2xl mb-6">
                             It's a Match!{" "}

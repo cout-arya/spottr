@@ -4,7 +4,7 @@ import { FaFire, FaDumbbell, FaRobot, FaTrophy, FaUserFriends, FaComments } from
 
 const LandingPage = () => {
     return (
-        <div className="min-h-screen bg-black text-white font-sans selection:bg-[#25F45C] selection:text-black overflow-x-hidden">
+        <div className="min-h-[100dvh] bg-black text-white font-sans selection:bg-[#25F45C] selection:text-black overflow-x-hidden">
             {/* Navbar */}
             <nav className="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-md border-b border-white/5">
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">

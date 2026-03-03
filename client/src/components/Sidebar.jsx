@@ -17,41 +17,34 @@ const Sidebar = () => {
     ];
 
     return (
-        <aside className="fixed bottom-0 left-0 w-full h-16 bg-dark/90 backdrop-blur-md border-t border-gray-800 flex flex-row items-center justify-around px-2 z-[60] lg:h-screen lg:w-64 lg:flex-col lg:justify-between lg:p-6 lg:border-r lg:border-t-0 lg:top-0 lg:bg-dark">
+        <aside className="fixed bottom-0 left-0 w-full h-16 bg-dark/90 backdrop-blur-md border-t border-gray-800 flex flex-row items-center justify-around px-2 z-[60] lg:h-[100dvh] lg:w-56 lg:flex-col lg:justify-between lg:p-6 lg:border-r lg:border-t-0 lg:top-0 lg:bg-dark">
             {/* Nav Group */}
-            <div className="w-full lg:w-auto lg:flex-1 lg:flex lg:flex-col">
+            <div className="w-full lg:w-auto lg:flex-1 lg:flex lg:flex-col lg:items-center">
                 {/* Logo - Desktop Only */}
-                <div className="hidden lg:block mb-8">
-                    <NavLink to="/home" className="flex items-center gap-2 mb-10 no-underline">
-                        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center transform rotate-12">
-                            <div className="w-4 h-4 bg-dark rounded-full"></div>
+                <div className="hidden lg:block mb-10 w-full">
+                    <NavLink to="/home" className="flex items-center justify-center gap-3 no-underline">
+                        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center transform p-1">
+                            <img src="/logo-white.svg" alt="" className="w-full h-full object-contain filter invert" onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<div class="w-4 h-4 bg-dark rounded-full"></div>'; }} />
                         </div>
-                        <h1 className="text-2xl font-bold text-white tracking-wide">Spottr</h1>
+                        <h1 className="text-2xl font-black tracking-tighter text-white">SPOTTR<span className="text-[#25F45C]">.</span></h1>
                     </NavLink>
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex flex-row w-full justify-around items-center lg:flex-col lg:gap-3 lg:justify-start">
+                <nav className="flex flex-row w-full justify-around items-center lg:flex-col lg:gap-4 lg:w-full">
                     {navItems.map((item) => (
                         <NavLink
                             key={item.path}
                             to={item.path}
                             className={({ isActive }) =>
-                                `relative flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-4 px-2 lg:px-4 py-2 lg:py-3 rounded-xl transition-all duration-300 group overflow-hidden ${item.mobileOnly ? 'lg:hidden' : ''} ${isActive
-                                    ? 'text-primary lg:bg-primary lg:text-dark font-bold lg:shadow-[0_0_20px_rgba(37,244,92,0.4)]'
-                                    : 'text-gray-400 hover:text-white lg:hover:bg-gray-800/50'
+                                `relative w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start lg:px-4 py-2 lg:py-3 rounded-xl transition-all duration-300 group overflow-hidden ${item.mobileOnly ? 'lg:hidden' : ''} ${isActive
+                                    ? 'text-primary bg-primary/10 font-bold lg:shadow-[inset_4px_0_0_#25F45C] border-t-2 border-primary lg:border-t-0'
+                                    : 'text-gray-400 hover:text-white hover:bg-gray-800/30'
                                 }`
                             }
                         >
-                            <span className="relative z-10">{item.icon}</span>
-                            <span className="relative z-10 text-[10px] lg:text-base font-medium tracking-wide">{item.label}</span>
-
-                            {/* Notification Badge Example using explicit check */}
-                            {item.label === 'Messages' && (
-                                <span className="absolute top-1 right-2 lg:right-3 w-3 h-3 lg:w-5 lg:h-5 bg-secondary text-white text-[8px] lg:text-[10px] font-bold flex items-center justify-center rounded-full shadow-lg z-10">
-                                    3
-                                </span>
-                            )}
+                            <span className="relative z-10 lg:mr-3">{item.icon}</span>
+                            <span className="relative z-10 text-[10px] lg:text-sm font-medium tracking-wide">{item.label}</span>
                         </NavLink>
                     ))}
                 </nav>

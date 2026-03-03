@@ -1,9 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FaCamera, FaSave, FaDumbbell, FaRulerCombined, FaMapMarkerAlt, FaFire, FaBed, FaBeer, FaSmoking, FaBrain, FaUsers, FaUserSecret, FaClipboardList, FaVenusMars } from 'react-icons/fa';
-import { motion } from 'framer-motion';
+import { FaCamera, FaSave, FaDumbbell, FaRulerCombined, FaMapMarkerAlt, FaFire, FaBed, FaBeer, FaSmoking, FaBrain, FaUsers, FaUserSecret, FaClipboardList, FaVenusMars, FaCrop, FaTrash, FaCheck, FaTimes } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
+import Cropper from 'react-easy-crop';
+import getCroppedImg from '../utils/cropImage';
 import toast from 'react-hot-toast';
 import { indianCities } from '../data/indianCities';
 
@@ -15,6 +17,7 @@ const ProfileSetup = () => {
     // Initial state with defaults
     const [formData, setFormData] = useState({
         // Basic
+        name: user?.name || '',
         age: user?.profile?.age || '',
         gender: user?.profile?.gender || 'Male',
         state: user?.profile?.state || '',
@@ -51,6 +54,14 @@ const ProfileSetup = () => {
     const [loading, setLoading] = useState(false);
     const fileInputRef = useRef(null);
 
+    // Photo Management States
+    const [showPhotoMenu, setShowPhotoMenu] = useState(false);
+    const [showCropper, setShowCropper] = useState(false);
+    const [imageSrc, setImageSrc] = useState(null);
+    const [crop, setCrop] = useState({ x: 0, y: 0 });
+    const [zoom, setZoom] = useState(1);
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
@@ -79,21 +90,73 @@ const ProfileSetup = () => {
         }
     };
 
+    // --- Photo Management Logic ---
     const handlePhotoUpload = (e) => {
         const file = e.target.files[0];
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {
-                const newPhotos = [reader.result, ...(formData.photos.slice(1))];
-                setFormData({ ...formData, photos: newPhotos });
+                setImageSrc(reader.result);
+                setShowPhotoMenu(false);
+                setShowCropper(true);
+                // Reset file input so same file can be selected again
+                if (fileInputRef.current) fileInputRef.current.value = '';
             };
             reader.readAsDataURL(file);
         }
     };
 
+    const handleCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
+        setCroppedAreaPixels(croppedAreaPixels);
+    }, []);
+
+    const saveCroppedImage = async () => {
+        try {
+            const croppedImageBase64 = await getCroppedImg(
+                imageSrc,
+                croppedAreaPixels
+            );
+            // Replace existing lead photo with new cropped version
+            const newPhotos = [croppedImageBase64, ...(formData.photos.slice(1))];
+            setFormData({ ...formData, photos: newPhotos });
+            setShowCropper(false);
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to crop image.");
+        }
+    };
+
+    const handleEditExistingPhoto = () => {
+        if (formData.photos.length > 0) {
+            setImageSrc(formData.photos[0]);
+            setShowPhotoMenu(false);
+            setShowCropper(true);
+        }
+    };
+
+    const handleRemovePhoto = () => {
+        // Remove the first photo (lead photo)
+        const newPhotos = formData.photos.slice(1);
+        setFormData({ ...formData, photos: newPhotos });
+        setShowPhotoMenu(false);
+    };
+    // ------------------------------
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
+
+        // Prevent massive legacy payloads from crashing the proxy/server
+        if (formData.photos && formData.photos.length > 0) {
+            if (formData.photos[0].length > 2000000) { // Approx 1.5MB
+                toast.error("Photo is too large. Please remove it and re-upload to compress.", {
+                    style: { background: '#333', color: '#EF4444', border: '1px solid #EF4444' }
+                });
+                setLoading(false);
+                return;
+            }
+        }
+
         try {
             const config = {
                 headers: {
@@ -102,8 +165,9 @@ const ProfileSetup = () => {
                 },
             };
 
-            const payload = { ...formData };
-            if (payload.age) payload.age = Number(payload.age);
+            const { name, ...profileData } = formData;
+            const payload = { ...profileData };
+
             if (payload.height) payload.height = Number(payload.height);
             if (payload.weight) payload.weight = Number(payload.weight);
             if (payload.experienceYears) payload.experienceYears = Number(payload.experienceYears);
@@ -115,11 +179,11 @@ const ProfileSetup = () => {
                 payload.benchmarks.deadlift = Number(payload.benchmarks.deadlift) || 0;
             }
 
-            const { data } = await axios.put('/users/profile', { profile: payload }, config);
+            const { data } = await axios.put('/users/profile', { name, profile: payload }, config);
 
             // Update Global State immediately
             // Merge returned profile into existing user object (since backend might return partial or just profile)
-            const updatedUser = { ...user, profile: data.profile };
+            const updatedUser = { ...user, name: data.name, profile: data.profile };
             if (data.token) updatedUser.token = data.token; // In case token is refreshed
 
             updateUser(updatedUser);
@@ -164,7 +228,14 @@ const ProfileSetup = () => {
                     <div className="relative z-10 flex flex-col md:flex-row gap-12 items-center">
                         {/* Profile Photo */}
                         <div className="relative shrink-0 flex flex-col items-center gap-4">
-                            <div className="relative group cursor-pointer" onClick={() => fileInputRef.current.click()}>
+                            <input
+                                type="file"
+                                hidden
+                                accept="image/*"
+                                ref={fileInputRef}
+                                onChange={handlePhotoUpload}
+                            />
+                            <div className="relative group cursor-pointer" onClick={() => setShowPhotoMenu(!showPhotoMenu)}>
                                 <div className="w-56 h-56 rounded-full p-2 bg-gradient-to-tr from-gray-800 to-gray-700 shadow-2xl overflow-hidden group-hover:scale-[1.02] transition-transform duration-500 ease-out border border-gray-700/50">
                                     <div className="w-full h-full rounded-full overflow-hidden relative">
                                         {formData.photos.length > 0 ? (
@@ -177,7 +248,7 @@ const ProfileSetup = () => {
                                         {/* Overlay */}
                                         <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-all duration-300">
                                             <FaCamera className="text-white text-3xl mb-2 drop-shadow-md" />
-                                            <span className="text-white font-bold text-xs uppercase tracking-widest text-shadow-md">Change Photo</span>
+                                            <span className="text-white font-bold text-xs uppercase tracking-widest text-shadow-md">Photo Options</span>
                                         </div>
                                     </div>
                                 </div>
@@ -185,10 +256,68 @@ const ProfileSetup = () => {
                                     <FaCamera className="text-lg" />
                                 </div>
                             </div>
+
+                            {/* Photo Options Menu */}
+                            <AnimatePresence>
+                                {showPhotoMenu && (
+                                    <>
+                                        {/* Click outside to close overlay */}
+                                        <div
+                                            className="fixed inset-0 z-40"
+                                            onClick={() => setShowPhotoMenu(false)}
+                                        />
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            className="absolute top-[80%] z-50 mt-4 bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl overflow-hidden w-48"
+                                        >
+                                            <button
+                                                onClick={() => { fileInputRef.current?.click(); setShowPhotoMenu(false); }}
+                                                className="w-full px-4 py-3 text-left text-sm font-bold text-white hover:bg-gray-800 flex items-center gap-3 transition-colors"
+                                            >
+                                                <FaCamera className="text-primary" /> Upload New
+                                            </button>
+                                            {formData.photos.length > 0 && (
+                                                <>
+                                                    <button
+                                                        onClick={handleEditExistingPhoto}
+                                                        className="w-full px-4 py-3 text-left text-sm font-bold text-white hover:bg-gray-800 flex items-center gap-3 transition-colors border-t border-gray-800"
+                                                    >
+                                                        <FaCrop className="text-blue-400" /> Edit & Crop
+                                                    </button>
+                                                    <button
+                                                        onClick={handleRemovePhoto}
+                                                        className="w-full px-4 py-3 text-left text-sm font-bold text-red-500 hover:bg-gray-800 flex items-center gap-3 transition-colors border-t border-gray-800"
+                                                    >
+                                                        <FaTrash className="text-red-500" /> Remove Photo
+                                                    </button>
+                                                </>
+                                            )}
+                                        </motion.div>
+                                    </>
+                                )}
+                            </AnimatePresence>
                         </div>
 
                         {/* Identity Inputs */}
                         <div className="w-full space-y-8">
+                            {/* Name Input - Full Width */}
+                            <div className="relative group w-full">
+                                <input
+                                    type="text"
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    className="peer w-full bg-gray-900/50 border-2 border-gray-800 text-white font-bold text-lg rounded-2xl px-6 py-4 pt-6 focus:border-primary focus:bg-gray-900 outline-none transition-all placeholder-transparent shadow-inner"
+                                    placeholder="Full Name"
+                                    required
+                                />
+                                <label className="absolute left-6 top-2 text-xs font-bold text-gray-500 uppercase tracking-wider peer-placeholder-shown:top-5 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-focus:top-2 peer-focus:text-xs peer-focus:text-primary transition-all">
+                                    Full Name
+                                </label>
+                            </div>
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                                 {/* Age Input - Floating Label Style */}
                                 <div className="relative group">
@@ -510,6 +639,72 @@ const ProfileSetup = () => {
                 .input-field { @apply w-full bg-gray-900 border border-gray-800 rounded-xl p-4 text-white font-medium focus:border-primary outline-none transition placeholder-gray-600; }
                 .card { @apply bg-gray-900 rounded-3xl p-6 border border-gray-800; }
             `}</style>
+
+            {/* Cropper Modal */}
+            <AnimatePresence>
+                {showCropper && imageSrc && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[9999] bg-black/95 flex flex-col backdrop-blur-md"
+                    >
+                        <div className="flex-1 relative">
+                            <Cropper
+                                image={imageSrc}
+                                crop={crop}
+                                zoom={zoom}
+                                aspect={1} // 1:1 Aspect ratio for profile pictures
+                                cropShape="round"
+                                showGrid={false}
+                                onCropChange={setCrop}
+                                onCropComplete={handleCropComplete}
+                                onZoomChange={setZoom}
+                            />
+                        </div>
+
+                        {/* Cropper Controls */}
+                        <div className="bg-gray-900 border-t border-gray-800 p-4 shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+                            <div className="max-w-2xl mx-auto flex flex-col md:flex-row items-center gap-4 md:justify-between">
+                                {/* Mobile Zoom Slider (Shows on both now, but styled for touch) */}
+                                <div className="w-full md:flex-1 md:max-w-sm flex items-center gap-3">
+                                    <span className="text-gray-400 text-xs font-bold uppercase tracking-wider">Zoom</span>
+                                    <input
+                                        type="range"
+                                        value={zoom}
+                                        min={1}
+                                        max={3}
+                                        step={0.1}
+                                        aria-labelledby="Zoom"
+                                        onChange={(e) => setZoom(e.target.value)}
+                                        className="w-full accent-primary h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                                    />
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="flex w-full md:w-auto gap-3">
+                                    <button
+                                        onClick={() => {
+                                            setShowCropper(false);
+                                            setImageSrc(null);
+                                        }}
+                                        className="flex-1 md:flex-none px-6 py-3 rounded-full text-white font-bold bg-gray-800 hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <FaTimes /> <span className="hidden sm:inline">Cancel</span>
+                                    </button>
+
+                                    <button
+                                        onClick={saveCroppedImage}
+                                        className="flex-[2] md:flex-none px-8 py-3 rounded-full bg-primary text-dark font-extrabold active:scale-95 md:hover:scale-105 transition-transform shadow-[0_0_15px_#25F45C] flex items-center justify-center gap-2"
+                                    >
+                                        <FaCheck /> Save Crop
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div >
     );
 };
