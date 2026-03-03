@@ -6,7 +6,7 @@ import io from 'socket.io-client';
 import { FaPaperPlane, FaArrowLeft, FaCheck, FaCheckDouble, FaInfoCircle, FaDumbbell } from 'react-icons/fa';
 import ProfileModal from '../components/ProfileModal';
 
-const ENDPOINT = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
+const ENDPOINT = import.meta.env.VITE_API_URL || 'https://spottr-1.onrender.com';
 var socket, selectedChatCompare;
 
 // Helper: relative time string

@@ -39,7 +39,7 @@ const Home = () => {
     useEffect(() => {
         if (!user) return;
 
-        const socket = io('http://127.0.0.1:5000');
+        const socket = io('https://spottr-1.onrender.com');
         socket.emit('setup', user);
 
         socket.on('match found', (newMatch) => {
