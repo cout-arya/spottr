@@ -5,35 +5,68 @@ const vectorStore = require('../utils/vectorStore');
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Unified Helper for AI calls
-const attemptGeneration = async (model, messages, retries = 1, jsonMode = false) => {
+// Gemini API Configuration
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+
+/**
+ * Unified Helper for Gemini AI calls
+ * Converts OpenAI-style messages to Gemini format and calls generateContent
+ */
+const attemptGeneration = async (model, messages, retries = 1) => {
+    const apiKey = process.env.gemini_key;
+    if (!apiKey) throw new Error('gemini_key not configured');
+
     try {
-        console.log(`[AI] Attempting generation with ${model}...`);
-        const config = {
-            model: model,
-            messages: messages,
-            temperature: 0.7,
+        console.log(`[AI] Attempting generation with Gemini ${model}...`);
+
+        // Convert OpenAI-style messages to Gemini format
+        // System message becomes systemInstruction, user/assistant become contents
+        let systemInstruction = undefined;
+        const contents = [];
+
+        for (const msg of messages) {
+            if (msg.role === 'system') {
+                systemInstruction = { parts: [{ text: msg.content }] };
+            } else {
+                contents.push({
+                    role: msg.role === 'assistant' ? 'model' : 'user',
+                    parts: [{ text: msg.content }]
+                });
+            }
+        }
+
+        const requestBody = {
+            contents: contents,
+            generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 2048,
+            }
         };
-        if (jsonMode) config.response_format = { type: "json_object" };
+
+        if (systemInstruction) {
+            requestBody.systemInstruction = systemInstruction;
+        }
 
         const response = await axios.post(
-            'https://openrouter.ai/api/v1/chat/completions',
-            config,
+            `${GEMINI_API_URL}/${model}:generateContent?key=${apiKey}`,
+            requestBody,
             {
-                headers: {
-                    'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-                    'HTTP-Referer': 'http://localhost:3000',
-                    'X-Title': 'Spottr'
-                }
+                headers: { 'Content-Type': 'application/json' }
             }
         );
-        console.log(`[AI] Response received from ${model}. Status: ${response.status}`);
-        return response.data.choices[0].message.content;
+
+        const candidate = response.data.candidates?.[0];
+        if (!candidate || !candidate.content?.parts?.[0]?.text) {
+            throw new Error('Empty response from Gemini');
+        }
+
+        console.log(`[AI] Response received from Gemini ${model}.`);
+        return candidate.content.parts[0].text;
     } catch (error) {
-        console.error(`[AI] Error with ${model}:`, error.message);
+        console.error(`[AI] Error with Gemini ${model}:`, error.response?.data?.error?.message || error.message);
         if (retries > 0) {
             await sleep(2000);
-            return attemptGeneration(model, messages, retries - 1, jsonMode);
+            return attemptGeneration(model, messages, retries - 1);
         }
         throw error;
     }
@@ -41,8 +74,8 @@ const attemptGeneration = async (model, messages, retries = 1, jsonMode = false)
 
 const generateDietPlan = async (req, res) => {
     try {
-        if (!process.env.OPENROUTER_API_KEY) {
-            return res.status(500).json({ message: 'Server Configuration Error: API Key Missing' });
+        if (!process.env.gemini_key) {
+            return res.status(500).json({ message: 'Server Configuration Error: Gemini API Key Missing' });
         }
 
         const user = await User.findById(req.user._id);
@@ -92,22 +125,17 @@ Output ONLY valid JSON. No markdown. Structure:
 
         let content;
         try {
-            content = await attemptGeneration('meta-llama/llama-3.3-70b-instruct:free', messages, 1, true);
+            content = await attemptGeneration('gemini-2.0-flash', messages, 1);
         } catch (e) {
-            console.warn('[AI] Llama failed, trying Gemma-3...');
+            console.warn('[AI] Gemini Flash failed, trying Flash-Lite...');
             try {
-                content = await attemptGeneration('google/gemma-3-12b-it:free', messages, 1, true);
+                content = await attemptGeneration('gemini-2.0-flash-lite', messages, 1);
             } catch (e2) {
-                console.warn('[AI] Gemma failed, trying Qwen-3...');
+                console.warn('[AI] Flash-Lite failed, trying Gemini 1.5 Flash...');
                 try {
-                    content = await attemptGeneration('qwen/qwen3-4b:free', messages, 1, true);
+                    content = await attemptGeneration('gemini-1.5-flash', messages, 1);
                 } catch (e3) {
-                    console.warn('[AI] Qwen failing, trying OpenRouter Free...');
-                    try {
-                        content = await attemptGeneration('openrouter/free', messages, 1, true);
-                    } catch (e4) {
-                        console.error('[AI] All models failed in Generate Diet');
-                    }
+                    console.error('[AI] All Gemini models failed in Generate Diet');
                 }
             }
         }
@@ -175,18 +203,13 @@ const analyzeLog = async (req, res) => {
 
         let content;
         try {
-            content = await attemptGeneration('meta-llama/llama-3.1-8b-instruct:free', messages, 1, true);
+            content = await attemptGeneration('gemini-2.0-flash-lite', messages, 1);
         } catch (e) {
-            console.warn('[AI] Llama failed on log, trying Gemma-3...');
+            console.warn('[AI] Flash-Lite failed on log, trying Flash...');
             try {
-                content = await attemptGeneration('google/gemma-3-12b-it:free', messages, 1, true);
+                content = await attemptGeneration('gemini-2.0-flash', messages, 1);
             } catch (e2) {
-                console.warn('[AI] Gemma failed, trying OpenRouter Free...');
-                try {
-                    content = await attemptGeneration('openrouter/free', messages, 1, true);
-                } catch (e3) {
-                    console.error('[AI] All models failed in Analyze Log');
-                }
+                console.error('[AI] All Gemini models failed in Analyze Log');
             }
         }
 
@@ -218,7 +241,6 @@ const regenerateMeal = async (req, res) => {
             return res.status(400).json({ message: 'Invalid data' });
         }
 
-        // Safety: ensure currentPlan.meals exists
         if (!currentPlan.meals || !Array.isArray(currentPlan.meals)) {
             console.warn('[AI] currentPlan.meals is missing or not an array');
             return res.status(400).json({ message: 'Missing meals array in plan' });
@@ -240,22 +262,17 @@ const regenerateMeal = async (req, res) => {
 
         let content;
         try {
-            content = await attemptGeneration('meta-llama/llama-3.3-70b-instruct:free', messages, 1, true);
+            content = await attemptGeneration('gemini-2.0-flash', messages, 1);
         } catch (e) {
-            console.warn('[AI] Llama failed on regenerate, trying Gemma-3...');
+            console.warn('[AI] Gemini Flash failed on regenerate, trying Flash-Lite...');
             try {
-                content = await attemptGeneration('google/gemma-3-12b-it:free', messages, 1, true);
+                content = await attemptGeneration('gemini-2.0-flash-lite', messages, 1);
             } catch (e2) {
-                console.warn('[AI] Gemma failed, trying Qwen-3...');
+                console.warn('[AI] Flash-Lite failed, trying 1.5 Flash...');
                 try {
-                    content = await attemptGeneration('qwen/qwen3-4b:free', messages, 1, true);
+                    content = await attemptGeneration('gemini-1.5-flash', messages, 1);
                 } catch (e3) {
-                    console.warn('[AI] Qwen failing, trying OpenRouter Free...');
-                    try {
-                        content = await attemptGeneration('openrouter/free', messages, 1, true);
-                    } catch (e4) {
-                        console.error('[AI] All models failed in Regenerate Meal');
-                    }
+                    console.error('[AI] All Gemini models failed in Regenerate Meal');
                 }
             }
         }
