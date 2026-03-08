@@ -125,15 +125,15 @@ Output ONLY valid JSON. No markdown. Structure:
 
         let content;
         try {
-            content = await attemptGeneration('gemini-2.0-flash', messages, 1);
+            content = await attemptGeneration('gemini-2.5-flash', messages, 1);
         } catch (e) {
-            console.warn('[AI] Gemini Flash failed, trying Flash-Lite...');
+            console.warn('[AI] Gemini Flash failed, trying gemini-flash-latest...');
             try {
-                content = await attemptGeneration('gemini-2.0-flash-lite', messages, 1);
+                content = await attemptGeneration('gemini-flash-latest', messages, 1);
             } catch (e2) {
-                console.warn('[AI] Flash-Lite failed, trying Gemini 1.5 Flash...');
+                console.warn('[AI] Latest failed, trying Gemma-3...');
                 try {
-                    content = await attemptGeneration('gemini-1.5-flash', messages, 1);
+                    content = await attemptGeneration('gemma-3-4b-it', messages, 1);
                 } catch (e3) {
                     console.error('[AI] All Gemini models failed in Generate Diet');
                 }
@@ -203,11 +203,11 @@ const analyzeLog = async (req, res) => {
 
         let content;
         try {
-            content = await attemptGeneration('gemini-2.0-flash-lite', messages, 1);
+            content = await attemptGeneration('gemini-flash-latest', messages, 1);
         } catch (e) {
-            console.warn('[AI] Flash-Lite failed on log, trying Flash...');
+            console.warn('[AI] Latest failed on log, trying 2.5-flash...');
             try {
-                content = await attemptGeneration('gemini-2.0-flash', messages, 1);
+                content = await attemptGeneration('gemini-2.5-flash', messages, 1);
             } catch (e2) {
                 console.error('[AI] All Gemini models failed in Analyze Log');
             }
@@ -262,15 +262,15 @@ const regenerateMeal = async (req, res) => {
 
         let content;
         try {
-            content = await attemptGeneration('gemini-2.0-flash', messages, 1);
+            content = await attemptGeneration('gemini-2.5-flash', messages, 1);
         } catch (e) {
-            console.warn('[AI] Gemini Flash failed on regenerate, trying Flash-Lite...');
+            console.warn('[AI] Gemini Flash failed on regenerate, trying gemini-flash-latest...');
             try {
-                content = await attemptGeneration('gemini-2.0-flash-lite', messages, 1);
+                content = await attemptGeneration('gemini-flash-latest', messages, 1);
             } catch (e2) {
-                console.warn('[AI] Flash-Lite failed, trying 1.5 Flash...');
+                console.warn('[AI] Latest failed, trying Gemma-3...');
                 try {
-                    content = await attemptGeneration('gemini-1.5-flash', messages, 1);
+                    content = await attemptGeneration('gemma-3-4b-it', messages, 1);
                 } catch (e3) {
                     console.error('[AI] All Gemini models failed in Regenerate Meal');
                 }
