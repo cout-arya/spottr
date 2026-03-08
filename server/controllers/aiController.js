@@ -1,32 +1,35 @@
 const asyncHandler = require('express-async-handler');
-const axios = require('axios');
 const User = require('../models/User');
 const vectorStore = require('../utils/vectorStore');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Gemini API Configuration
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+/**
+ * Initialize Gemini client
+ */
+function getGenAI() {
+    const key = process.env.gemini_key;
+    if (!key) throw new Error('gemini_key not configured');
+    return new GoogleGenerativeAI(key);
+}
 
 /**
- * Unified Helper for Gemini AI calls
- * Converts OpenAI-style messages to Gemini format and calls generateContent
+ * Unified Helper for Gemini AI calls using official SDK
+ * Accepts OpenAI-style messages and converts to Gemini format
  */
-const attemptGeneration = async (model, messages, retries = 1) => {
-    const apiKey = process.env.gemini_key;
-    if (!apiKey) throw new Error('gemini_key not configured');
-
+const attemptGeneration = async (modelName, messages, retries = 1) => {
     try {
-        console.log(`[AI] Attempting generation with Gemini ${model}...`);
+        console.log(`[AI] Attempting generation with ${modelName}...`);
+        const genAI = getGenAI();
 
-        // Convert OpenAI-style messages to Gemini format
-        // System message becomes systemInstruction, user/assistant become contents
-        let systemInstruction = undefined;
+        // Extract system instruction and user/assistant messages
+        let systemText = '';
         const contents = [];
 
         for (const msg of messages) {
             if (msg.role === 'system') {
-                systemInstruction = { parts: [{ text: msg.content }] };
+                systemText = msg.content;
             } else {
                 contents.push({
                     role: msg.role === 'assistant' ? 'model' : 'user',
@@ -35,41 +38,75 @@ const attemptGeneration = async (model, messages, retries = 1) => {
             }
         }
 
-        const requestBody = {
-            contents: contents,
+        const modelConfig = {
+            model: modelName,
             generationConfig: {
                 temperature: 0.7,
                 maxOutputTokens: 2048,
             }
         };
 
-        if (systemInstruction) {
-            requestBody.systemInstruction = systemInstruction;
+        if (systemText) {
+            modelConfig.systemInstruction = systemText;
         }
 
-        const response = await axios.post(
-            `${GEMINI_API_URL}/${model}:generateContent?key=${apiKey}`,
-            requestBody,
-            {
-                headers: { 'Content-Type': 'application/json' }
-            }
-        );
+        const model = genAI.getGenerativeModel(modelConfig);
 
-        const candidate = response.data.candidates?.[0];
-        if (!candidate || !candidate.content?.parts?.[0]?.text) {
-            throw new Error('Empty response from Gemini');
-        }
+        const result = await model.generateContent({ contents });
+        const text = result.response.text();
 
-        console.log(`[AI] Response received from Gemini ${model}.`);
-        return candidate.content.parts[0].text;
+        if (!text) throw new Error('Empty response from Gemini');
+
+        console.log(`[AI] Response received from ${modelName}. Length: ${text.length}`);
+        return text;
     } catch (error) {
-        console.error(`[AI] Error with Gemini ${model}:`, error.response?.data?.error?.message || error.message);
+        const errMsg = error.message || 'Unknown error';
+        console.error(`[AI] Error with ${modelName}: ${errMsg}`);
         if (retries > 0) {
-            await sleep(2000);
-            return attemptGeneration(model, messages, retries - 1);
+            const waitTime = errMsg.includes('429') || errMsg.includes('quota') ? 5000 : 2000;
+            console.log(`[AI] Retrying in ${waitTime}ms...`);
+            await sleep(waitTime);
+            return attemptGeneration(modelName, messages, retries - 1);
         }
         throw error;
     }
+};
+
+/**
+ * Try multiple models in sequence until one succeeds
+ */
+const tryModels = async (models, messages) => {
+    for (let i = 0; i < models.length; i++) {
+        try {
+            return await attemptGeneration(models[i], messages, 1);
+        } catch (e) {
+            console.warn(`[AI] ${models[i]} failed${i < models.length - 1 ? ', trying next...' : ''}`);
+        }
+    }
+    console.error('[AI] All models exhausted');
+    return null;
+};
+
+// Model priority list - tested and verified working with this API key
+const FAST_MODELS = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemma-3-4b-it'];
+const LITE_MODELS = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemma-3-4b-it'];
+
+/**
+ * Extract JSON from potentially markdown-wrapped response
+ */
+const extractJSON = (content) => {
+    if (!content) return null;
+    const clean = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    const first = clean.indexOf('{');
+    const last = clean.lastIndexOf('}');
+    if (first !== -1 && last !== -1) {
+        try {
+            return JSON.parse(clean.substring(first, last + 1));
+        } catch (e) {
+            console.error('[AI] JSON Parse Error:', e.message);
+        }
+    }
+    return null;
 };
 
 const generateDietPlan = async (req, res) => {
@@ -123,36 +160,8 @@ Output ONLY valid JSON. No markdown. Structure:
             { role: 'user', content: userPrompt }
         ];
 
-        let content;
-        try {
-            content = await attemptGeneration('gemini-2.5-flash', messages, 1);
-        } catch (e) {
-            console.warn('[AI] Gemini Flash failed, trying gemini-flash-latest...');
-            try {
-                content = await attemptGeneration('gemini-flash-latest', messages, 1);
-            } catch (e2) {
-                console.warn('[AI] Latest failed, trying Gemma-3...');
-                try {
-                    content = await attemptGeneration('gemma-3-4b-it', messages, 1);
-                } catch (e3) {
-                    console.error('[AI] All Gemini models failed in Generate Diet');
-                }
-            }
-        }
-
-        let dietPlan = null;
-        if (content) {
-            const clean = content.replace(/```json/g, '').replace(/```/g, '').trim();
-            const first = clean.indexOf('{');
-            const last = clean.lastIndexOf('}');
-            if (first !== -1 && last !== -1) {
-                try {
-                    dietPlan = JSON.parse(clean.substring(first, last + 1));
-                } catch (jsonError) {
-                    console.error('[AI] JSON Parse Error:', jsonError.message);
-                }
-            }
-        }
+        const content = await tryModels(FAST_MODELS, messages);
+        let dietPlan = extractJSON(content);
 
         if (!dietPlan) {
             dietPlan = {
@@ -186,7 +195,7 @@ Output ONLY valid JSON. No markdown. Structure:
             calories: 2000,
             protein: 100,
             meals: [],
-            advice: "Service Temporary Unavailable"
+            advice: "Service Temporarily Unavailable"
         });
     }
 };
@@ -201,27 +210,8 @@ const analyzeLog = async (req, res) => {
 
         const messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }];
 
-        let content;
-        try {
-            content = await attemptGeneration('gemini-flash-latest', messages, 1);
-        } catch (e) {
-            console.warn('[AI] Latest failed on log, trying 2.5-flash...');
-            try {
-                content = await attemptGeneration('gemini-2.5-flash', messages, 1);
-            } catch (e2) {
-                console.error('[AI] All Gemini models failed in Analyze Log');
-            }
-        }
-
-        let result = null;
-        if (content) {
-            const clean = content.replace(/```json/g, '').replace(/```/g, '').trim();
-            const first = clean.indexOf('{');
-            const last = clean.lastIndexOf('}');
-            if (first !== -1 && last !== -1) {
-                result = JSON.parse(clean.substring(first, last + 1));
-            }
-        }
+        const content = await tryModels(LITE_MODELS, messages);
+        const result = extractJSON(content);
 
         res.json(result || { type: 'workout', summary: 'Log', xp: 5, data: {} });
 
@@ -260,38 +250,10 @@ const regenerateMeal = async (req, res) => {
 
         const messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }];
 
-        let content;
-        try {
-            content = await attemptGeneration('gemini-2.5-flash', messages, 1);
-        } catch (e) {
-            console.warn('[AI] Gemini Flash failed on regenerate, trying gemini-flash-latest...');
-            try {
-                content = await attemptGeneration('gemini-flash-latest', messages, 1);
-            } catch (e2) {
-                console.warn('[AI] Latest failed, trying Gemma-3...');
-                try {
-                    content = await attemptGeneration('gemma-3-4b-it', messages, 1);
-                } catch (e3) {
-                    console.error('[AI] All Gemini models failed in Regenerate Meal');
-                }
-            }
-        }
+        const content = await tryModels(FAST_MODELS, messages);
+        let newMeal = extractJSON(content);
 
-        let newMeal = null;
-        if (content) {
-            const clean = content.replace(/```json/g, '').replace(/```/g, '').trim();
-            const first = clean.indexOf('{');
-            const last = clean.lastIndexOf('}');
-            if (first !== -1 && last !== -1) {
-                try {
-                    newMeal = JSON.parse(clean.substring(first, last + 1));
-                } catch (jsonError) {
-                    console.error('[AI] JSON Parse Error on regenerate:', jsonError.message);
-                }
-            }
-        }
-
-        // Final Fallback to prevent 500 error
+        // Final Fallback
         if (!newMeal) {
             console.log('[AI] Using fallback meal data...');
             newMeal = {
