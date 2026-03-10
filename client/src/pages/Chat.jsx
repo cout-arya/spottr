@@ -137,6 +137,7 @@ const Chat = () => {
     };
 
     const fetchMessages = async (id) => {
+        setMessages([]);
         setLoadingMessages(true);
         try {
             const config = { headers: { Authorization: `Bearer ${user.token}` } };
@@ -209,6 +210,14 @@ const Chat = () => {
     const lastSeenAt = getLastSeenAt();
     const lastMsg = messages[messages.length - 1];
     const showSeenBelow = lastMsg && lastMsg.senderId._id === user._id && lastMsg.readAt;
+
+    if (loadingMatches) {
+        return (
+            <div className="w-full h-[calc(100dvh-4rem)] lg:h-[100dvh] bg-dark flex items-center justify-center">
+                <LoadingSpinner text="Loading chats..." />
+            </div>
+        );
+    }
 
     return (
         <div className="flex w-full h-[calc(100dvh-4rem)] lg:h-[100dvh] overflow-hidden bg-dark font-sans">
