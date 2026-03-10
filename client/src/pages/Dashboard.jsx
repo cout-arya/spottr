@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import LoadingSpinner from "../components/LoadingSpinner";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import { FaDumbbell, FaUtensils, FaCheckCircle, FaTrophy, FaMedal, FaFire, FaRobot } from "react-icons/fa";
@@ -172,7 +173,7 @@ const Dashboard = () => {
     }
   };
 
-  if (loading) return <div className="p-8 text-white">Loading Dashboard...</div>;
+  if (loading) return <LoadingSpinner text="Loading Dashboard..." />;
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 md:space-y-8 p-4 md:p-8 pb-24 md:pb-12 min-h-[100dvh] font-sans">

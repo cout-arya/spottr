@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import LoadingSpinner from './components/LoadingSpinner';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import { useAuth } from './context/AuthContext';
@@ -13,7 +14,7 @@ import { Toaster } from 'react-hot-toast';
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <LoadingSpinner text="Loading your profile..." />;
   if (!user) return <Navigate to="/login" />;
   return children;
 };
