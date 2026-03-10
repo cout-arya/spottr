@@ -158,4 +158,49 @@ const resetInteractions = asyncHandler(async (req, res) => {
     res.json({ message: 'Discovery reset successfully' });
 });
 
-module.exports = { getRecommendations, swipe, getMatches, resetInteractions };
+// @desc    Get all users the current user has liked
+// @route   GET /api/matches/liked
+// @access  Private
+const getLikedUsers = asyncHandler(async (req, res) => {
+    const currentUserId = req.user._id;
+
+    // Get all 'like' interactions by the current user
+    const likedInteractions = await Interaction.find({
+        actorId: currentUserId,
+        type: 'like'
+    })
+        .sort({ createdAt: -1 })
+        .populate('targetId', 'name profile.photos profile.city profile.fitnessLevel profile.age profile.gymType profile.experienceYears profile.bio profile.goals profile.gymPersonality profile.benchmarks profile.commitment profile.lifestyle');
+
+    // Get all matches involving the current user
+    const userMatches = await Match.find({ users: currentUserId });
+    const matchMap = {};
+    userMatches.forEach(match => {
+        match.users.forEach(uid => {
+            if (uid.toString() !== currentUserId.toString()) {
+                matchMap[uid.toString()] = match._id;
+            }
+        });
+    });
+
+    // Build response
+    const likedUsers = likedInteractions
+        .filter(interaction => interaction.targetId) // filter out deleted users
+        .map(interaction => {
+            const target = interaction.targetId;
+            const matchId = matchMap[target._id.toString()];
+            return {
+                _id: target._id,
+                name: target.name,
+                profile: target.profile,
+                isMatched: !!matchId,
+                matchId: matchId || null,
+                status: matchId ? 'Matched' : 'Waiting',
+                likedAt: interaction.createdAt
+            };
+        });
+
+    res.json(likedUsers);
+});
+
+module.exports = { getRecommendations, swipe, getMatches, resetInteractions, getLikedUsers };

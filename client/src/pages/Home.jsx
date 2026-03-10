@@ -14,7 +14,8 @@ import {
     FaStar,
     FaSearch,
     FaBell,
-    FaSync,
+    FaHistory,
+    FaDumbbell,
 } from "react-icons/fa";
 
 const Home = () => {
@@ -28,10 +29,11 @@ const Home = () => {
     // Feature States
     const [showSearch, setShowSearch] = useState(false);
     const [showNotifs, setShowNotifs] = useState(false);
-    const [showResetConfirm, setShowResetConfirm] = useState(false);
+    const [showLiked, setShowLiked] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [searchResults, setSearchResults] = useState([]);
     const [matches, setMatches] = useState([]);
+    const [likedUsers, setLikedUsers] = useState([]);
     const [likeNotifications, setLikeNotifications] = useState([]);
     const [matchNotifications, setMatchNotifications] = useState([]);
 
@@ -39,7 +41,8 @@ const Home = () => {
     useEffect(() => {
         if (!user) return;
 
-        const socket = io('https://spottr-1.onrender.com');
+        const ENDPOINT = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const socket = io(ENDPOINT);
         socket.emit('setup', user);
 
         socket.on('match found', (newMatch) => {
@@ -209,37 +212,27 @@ const Home = () => {
         }
     };
 
+    const fetchLikedUsers = async () => {
+        try {
+            const config = { headers: { Authorization: `Bearer ${user.token}` } };
+            const { data } = await axios.get("/matches/liked", config);
+            setLikedUsers(data);
+        } catch (error) {
+            if (error.response?.status === 401) return;
+            console.error("Error fetching liked users", error);
+        }
+    };
+
     const openProfile = (profileUser) => {
         setSelectedProfile(profileUser);
         setShowModal(true);
         // Close overlays
         setShowSearch(false);
         setShowNotifs(false);
+        setShowLiked(false);
     };
 
-    const handleResetDiscovery = async () => {
-        try {
-            const config = { headers: { Authorization: `Bearer ${user.token}` } };
-            await axios.post("/matches/reset-interactions", {}, config);
 
-            setCurrentIndex(0);
-            setShowResetConfirm(false);
-            await fetchRecommendations();
-
-            toast.success('Discovery reset! All users are back.', {
-                icon: '🔄',
-                style: {
-                    borderRadius: '10px',
-                    background: '#0F0F0F',
-                    color: '#fff',
-                    border: '1px solid #25F45C',
-                },
-            });
-        } catch (error) {
-            console.error(error);
-            toast.error('Failed to reset discovery');
-        }
-    };
 
     const handleSearchSwipe = async (targetId, type) => {
         try {
@@ -354,10 +347,30 @@ const Home = () => {
                         onClick={() => {
                             setShowSearch(!showSearch);
                             setShowNotifs(false);
+                            setShowLiked(false);
                         }}
                         className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${showSearch ? "bg-white text-black" : "bg-gray-900/80 text-white border border-gray-800 hover:border-gray-600"}`}
                     >
                         <FaSearch className="text-lg" />
+                    </button>
+
+                    {/* Liked People Button */}
+                    <button
+                        onClick={() => {
+                            const next = !showLiked;
+                            setShowLiked(next);
+                            setShowSearch(false);
+                            setShowNotifs(false);
+                            if (next) fetchLikedUsers();
+                        }}
+                        className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 relative ${showLiked ? "bg-[#25F45C] text-black" : "bg-gray-900/80 text-white border border-gray-800 hover:border-gray-600"}`}
+                    >
+                        <FaHistory className="text-lg" />
+                        {likedUsers.length > 0 && !showLiked && (
+                            <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-[#25F45C] rounded-full flex items-center justify-center text-[10px] font-black text-black border-2 border-black">
+                                {likedUsers.length}
+                            </span>
+                        )}
                     </button>
 
                     {/* Notification Button */}
@@ -365,6 +378,7 @@ const Home = () => {
                         onClick={() => {
                             setShowNotifs(!showNotifs);
                             setShowSearch(false);
+                            setShowLiked(false);
                         }}
                         className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 relative z-50 ${showNotifs ? "bg-white text-black" : "bg-gray-900/80 text-white border border-gray-800 hover:border-gray-600"}`}
                     >
@@ -495,6 +509,77 @@ const Home = () => {
                 )}
             </AnimatePresence>
 
+            {/* Liked People Overlay */}
+            <AnimatePresence>
+                {showLiked && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className="absolute top-16 md:top-20 right-0 w-full md:w-96 h-[calc(100dvh-4rem-4rem)] lg:h-[calc(100dvh-80px)] z-30 bg-gray-900/95 backdrop-blur-xl border-l border-gray-800 p-4 md:p-6 overflow-y-auto"
+                    >
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-10 h-10 bg-[#25F45C]/10 rounded-xl flex items-center justify-center">
+                                <FaHistory className="text-[#25F45C] text-lg" />
+                            </div>
+                            <div>
+                                <h2 className="text-white font-black text-xl leading-none">Liked People</h2>
+                                <p className="text-gray-500 text-xs font-medium mt-0.5">{likedUsers.length} total</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            {likedUsers.length > 0 ? (
+                                likedUsers.map((likedUser) => (
+                                    <div
+                                        key={likedUser._id}
+                                        onClick={() => openProfile(likedUser)}
+                                        className="flex items-center gap-4 p-4 rounded-2xl bg-black/60 border border-gray-800 cursor-pointer hover:border-[#25F45C]/30 hover:bg-gray-800/60 transition-all duration-300 group"
+                                    >
+                                        <div className={`w-14 h-14 rounded-full bg-gray-800 overflow-hidden border-2 shrink-0 transition-colors ${likedUser.isMatched ? 'border-[#25F45C]' : 'border-yellow-500/50'}`}>
+                                            {likedUser.profile?.photos?.[0] ? (
+                                                <img
+                                                    src={likedUser.profile.photos[0]}
+                                                    alt={likedUser.name}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-gray-500 text-xl">
+                                                    ?
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="text-white font-bold text-base truncate group-hover:text-[#25F45C] transition-colors">
+                                                {likedUser.name}
+                                            </h3>
+                                            <p className="text-gray-500 text-xs truncate">
+                                                {likedUser.profile?.city || 'No location'}
+                                            </p>
+                                        </div>
+                                        <div className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 ${
+                                            likedUser.isMatched
+                                                ? 'bg-[#25F45C]/15 text-[#25F45C] border border-[#25F45C]/30'
+                                                : 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/30'
+                                        }`}>
+                                            {likedUser.status}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-16">
+                                    <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <FaHeart className="text-2xl text-gray-600" />
+                                    </div>
+                                    <p className="text-gray-500 font-medium">No likes yet</p>
+                                    <p className="text-gray-600 text-sm mt-1">Start swiping to see your liked people here</p>
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Notifications Overlay */}
             <AnimatePresence>
                 {showNotifs && (
@@ -614,53 +699,6 @@ const Home = () => {
                 )}
             </AnimatePresence>
 
-            {/* Reset Confirmation Dialog */}
-            <AnimatePresence>
-                {showResetConfirm && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
-                        onClick={() => setShowResetConfirm(false)}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="bg-gray-900 border border-gray-800 rounded-3xl p-8 max-w-md mx-4 shadow-2xl"
-                        >
-                            <div className="text-center">
-                                <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <FaSync className="text-3xl text-primary" />
-                                </div>
-                                <h2 className="text-2xl font-black text-white mb-3">
-                                    Reset Discovery?
-                                </h2>
-                                <p className="text-gray-400 mb-6">
-                                    This will clear your swipe history and show all users again, including those you've already passed or liked.
-                                </p>
-                                <div className="flex gap-3">
-                                    <button
-                                        onClick={() => setShowResetConfirm(false)}
-                                        className="flex-1 px-6 py-3 bg-gray-800 text-white font-bold rounded-xl hover:bg-gray-700 transition"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={handleResetDiscovery}
-                                        className="flex-1 px-6 py-3 bg-primary text-dark font-bold rounded-xl hover:shadow-[0_0_20px_#25F45C] transition"
-                                    >
-                                        Reset
-                                    </button>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
             {/* Main Card Area */}
             <div className="flex-1 flex flex-col items-center justify-center p-2 md:p-4 z-20 overflow-hidden min-h-0 w-full">
                 <div className="relative w-full max-w-[380px] h-[70vh] max-h-[600px] flex-shrink-0">
@@ -683,20 +721,19 @@ const Home = () => {
                             />
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center text-center p-8 bg-gray-900/30 backdrop-blur-md rounded-[30px] border border-gray-800/50">
-                                <div className="text-6xl mb-6">🎉</div>
+                                <div className="relative mb-6">
+                                    <div className="absolute inset-0 w-20 h-20 rounded-full bg-[#25F45C]/20 blur-xl animate-pulse mx-auto" />
+                                    <div className="relative w-20 h-20 rounded-full bg-[#25F45C]/10 border border-[#25F45C]/30 flex items-center justify-center">
+                                        <FaDumbbell className="text-3xl text-[#25F45C] animate-bounce" />
+                                    </div>
+                                </div>
                                 <h2 className="text-2xl font-bold text-white mb-2">
                                     You've seen everyone!
                                 </h2>
-                                <p className="text-gray-400 mb-6 text-sm max-w-xs">
+                                <p className="text-gray-400 text-sm max-w-xs">
                                     Broaden your filters or come back later for more potential gym
                                     buddies.
                                 </p>
-                                <button
-                                    onClick={() => setShowResetConfirm(true)}
-                                    className="px-8 py-3 bg-primary text-dark font-bold rounded-full hover:shadow-[0_0_20px_#25F45C] transition transform hover:scale-105"
-                                >
-                                    Refresh List
-                                </button>
                             </div>
                         )}
                     </AnimatePresence>
