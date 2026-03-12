@@ -79,8 +79,14 @@ export const AuthProvider = ({ children }) => {
         setUser(data);
     };
 
+    const loginAsDemo = async () => {
+        const { data } = await axios.post('/auth/demo-login');
+        localStorage.setItem('userInfo', JSON.stringify(data));
+        setUser(data);
+    };
+
     return (
-        <AuthContext.Provider value={{ user, login, register, googleLogin, logout, updateUser, loading }}>
+        <AuthContext.Provider value={{ user, login, register, googleLogin, loginAsDemo, logout, updateUser, loading }}>
             {!loading && children}
         </AuthContext.Provider>
     );

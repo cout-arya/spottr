@@ -23,37 +23,32 @@ const attemptGeneration = async (modelName, messages, retries = 1) => {
         console.log(`[AI] Attempting generation with ${modelName}...`);
         const genAI = getGenAI();
 
-        // Extract system instruction and user/assistant messages
-        let systemText = '';
-        const contents = [];
+        let combinedPrompt = '';
 
         for (const msg of messages) {
             if (msg.role === 'system') {
-                systemText = msg.content;
-            } else {
-                contents.push({
-                    role: msg.role === 'assistant' ? 'model' : 'user',
-                    parts: [{ text: msg.content }]
-                });
+                combinedPrompt += msg.content + '\n\n';
+            } else if (msg.role === 'user') {
+                combinedPrompt += msg.content;
             }
         }
 
         const modelConfig = {
             model: modelName,
+            systemInstruction: messages.find(m => m.role === 'system')?.content || '',
             generationConfig: {
                 temperature: 0.7,
                 maxOutputTokens: 2048,
+                responseMimeType: "application/json"
             }
         };
 
-        if (systemText) {
-            modelConfig.systemInstruction = systemText;
-        }
-
         const model = genAI.getGenerativeModel(modelConfig);
-
-        const result = await model.generateContent({ contents });
-        const text = result.response.text();
+        
+        // Extract only user messages for the prompt
+        const userPrompt = messages.find(m => m.role === 'user')?.content || combinedPrompt;
+        const result = await model.generateContent(userPrompt);
+        return result.response.text();
 
         if (!text) throw new Error('Empty response from Gemini');
 
@@ -88,8 +83,8 @@ const tryModels = async (models, messages) => {
 };
 
 // Model priority list - tested and verified working with this API key
-const FAST_MODELS = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemma-3-4b-it'];
-const LITE_MODELS = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemma-3-4b-it'];
+const FAST_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+const LITE_MODELS = ['gemini-2.5-flash-lite', 'gemini-2.0-flash-lite'];
 
 /**
  * Extract JSON from potentially markdown-wrapped response
@@ -161,6 +156,7 @@ Output ONLY valid JSON. No markdown. Structure:
         ];
 
         const content = await tryModels(FAST_MODELS, messages);
+        console.log("Raw Diet Plan Output:", content);
         let dietPlan = extractJSON(content);
 
         if (!dietPlan) {

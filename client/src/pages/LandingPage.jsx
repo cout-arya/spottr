@@ -1,8 +1,28 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { FaFire, FaDumbbell, FaRobot, FaTrophy, FaUserFriends, FaComments } from 'react-icons/fa';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { FaFire, FaDumbbell, FaRobot, FaTrophy, FaUserFriends, FaComments, FaPlay } from 'react-icons/fa';
+import { useAuth } from '../context/AuthContext';
+import toast from 'react-hot-toast';
 
 const LandingPage = () => {
+    const navigate = useNavigate();
+    const { loginAsDemo } = useAuth();
+    const [isDemoLoading, setIsDemoLoading] = useState(false);
+
+    const handleDemoLogin = async () => {
+        setIsDemoLoading(true);
+        try {
+            await loginAsDemo();
+            toast.success('Welcome to the Demo Account!', { icon: '👋' });
+            navigate('/home');
+        } catch (error) {
+            console.error(error);
+            toast.error('Demo account not found. Please run the seed script.');
+        } finally {
+            setIsDemoLoading(false);
+        }
+    };
+
     return (
         <div className="min-h-[100dvh] bg-black text-white font-sans selection:bg-[#25F45C] selection:text-black overflow-x-hidden">
             {/* Navbar */}
@@ -11,11 +31,15 @@ const LandingPage = () => {
                     <div className="text-2xl font-black tracking-tighter">
                         SPOTTR<span className="text-[#25F45C]">.</span>
                     </div>
-                    <div className="flex gap-4">
-                        <Link to="/login" className="text-sm font-bold text-gray-400 hover:text-white transition py-2">LOGIN</Link>
-                        <Link to="/register" className="bg-[#25F45C] text-black px-5 py-2 rounded-full font-bold text-sm hover:shadow-[0_0_15px_rgba(37,244,92,0.4)] transition transform hover:scale-105">
-                            GET STARTED
-                        </Link>
+                    <div className="flex gap-4 items-center">
+                        <Link to="/login" className="text-sm font-bold text-gray-400 hover:text-white transition py-2 hidden sm:block">LOGIN</Link>
+                        <button 
+                            onClick={handleDemoLogin}
+                            disabled={isDemoLoading}
+                            className="bg-primary/20 text-[#25F45C] border border-[#25F45C]/30 px-4 py-2 rounded-full font-bold text-sm hover:bg-primary/30 transition flex items-center gap-2"
+                        >
+                            {isDemoLoading ? <span className="animate-spin">⌛</span> : <FaPlay className="text-xs" />} DEMO
+                        </button>
                     </div>
                 </div>
             </nav>
@@ -37,11 +61,16 @@ const LandingPage = () => {
                         Stop lifting alone. Connect with local gym-goers who match your goals, intensity, and schedule.
                     </p>
                     <div className="flex flex-col sm:flex-row justify-center gap-4">
-                        <Link to="/register" className="bg-[#25F45C] text-black px-8 py-4 rounded-xl font-black text-lg hover:bg-[#1ee350] transition hover:scale-105 flex items-center justify-center gap-3">
+                        <button 
+                            onClick={handleDemoLogin}
+                            disabled={isDemoLoading}
+                            className="bg-[#25F45C] text-black px-8 py-4 rounded-xl font-black text-lg hover:bg-[#1ee350] transition hover:scale-105 flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(37,244,92,0.3)]"
+                        >
+                            {isDemoLoading ? <span className="animate-spin text-xl">⌛</span> : <FaPlay />} 
+                            TRY LIVE DEMO
+                        </button>
+                        <Link to="/register" className="bg-white/5 border border-white/10 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/10 transition flex items-center justify-center gap-3">
                             <FaUserFriends /> FIND A PARTNER
-                        </Link>
-                        <Link to="/login" className="bg-white/5 border border-white/10 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/10 transition flex items-center justify-center gap-3">
-                            LOG IN
                         </Link>
                     </div>
                 </div>

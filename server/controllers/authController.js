@@ -159,4 +159,26 @@ const authGoogle = asyncHandler(async (req, res) => {
     }
 });
 
-module.exports = { authUser, registerUser, authGoogle };
+// @desc    Demo login (no password required)
+// @route   POST /api/auth/demo-login
+// @access  Public
+const demoLogin = asyncHandler(async (req, res) => {
+    const user = await User.findOne({ email: 'demo@spottr.com' });
+
+    if (!user) {
+        res.status(404);
+        throw new Error('Demo account not found. Please run the seed script first.');
+    }
+
+    res.json({
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        profile: user.profile,
+        gamification: user.gamification,
+        preferences: user.preferences,
+        token: generateToken(user._id),
+    });
+});
+
+module.exports = { authUser, registerUser, authGoogle, demoLogin };

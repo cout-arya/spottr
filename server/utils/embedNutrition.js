@@ -18,26 +18,19 @@ const GEMINI_API_KEY = process.env.gemini_key;
 const GEMINI_EMBEDDING_MODEL = 'gemini-embedding-001';
 const GEMINI_EMBEDDING_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_EMBEDDING_MODEL}:embedContent`;
 
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+
 /**
- * Generate embedding for a text chunk using Gemini API
+ * Generate embedding for a text chunk using Gemini SDK
  */
 async function generateEmbedding(text) {
     try {
-        const response = await axios.post(
-            `${GEMINI_EMBEDDING_URL}?key=${GEMINI_API_KEY}`,
-            {
-                model: `models/${GEMINI_EMBEDDING_MODEL}`,
-                content: {
-                    parts: [{ text: text }]
-                }
-            },
-            {
-                headers: { 'Content-Type': 'application/json' }
-            }
-        );
-        return response.data.embedding.values;
+        const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: GEMINI_EMBEDDING_MODEL });
+        const result = await model.embedContent(text);
+        return result.embedding.values;
     } catch (error) {
-        console.error('Error generating embedding:', error.response?.data || error.message);
+        console.error('Error generating embedding with SDK:', error.message);
         throw error;
     }
 }

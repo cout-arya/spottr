@@ -6,12 +6,11 @@ const fs = require('fs').promises;
 const path = require('path');
 const axios = require('axios');
 
-// Configuration
-const EMBEDDINGS_FILE = path.join(__dirname, '../data/vectors/nutrition_embeddings.json');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// Gemini API Configuration
+// Application Configuration
+const EMBEDDINGS_FILE = path.join(__dirname, '../data/vectors/nutrition_embeddings.json');
 const GEMINI_EMBEDDING_MODEL = 'gemini-embedding-001';
-const GEMINI_EMBEDDING_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_EMBEDDING_MODEL}:embedContent`;
 
 // In-memory cache of embeddings
 let embeddingsCache = null;
@@ -67,30 +66,19 @@ async function loadEmbeddings() {
 }
 
 /**
- * Generate embedding for a query using Gemini API
+ * Generate embedding for a query using Gemini SDK
  */
 async function generateEmbedding(text) {
     const apiKey = process.env.gemini_key;
-    if (!apiKey) {
-        throw new Error('gemini_key not configured in environment variables');
-    }
+    if (!apiKey) throw new Error('gemini_key not configured');
 
     try {
-        const response = await axios.post(
-            `${GEMINI_EMBEDDING_URL}?key=${apiKey}`,
-            {
-                model: `models/${GEMINI_EMBEDDING_MODEL}`,
-                content: {
-                    parts: [{ text: text }]
-                }
-            },
-            {
-                headers: { 'Content-Type': 'application/json' }
-            }
-        );
-        return response.data.embedding.values;
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: GEMINI_EMBEDDING_MODEL });
+        const result = await model.embedContent(text);
+        return result.embedding.values;
     } catch (error) {
-        console.error('[VectorStore] Gemini embedding generation failed:', error.response?.data || error.message);
+        console.error('[VectorStore] Gemini sdk embedding generation failed:', error.message);
         throw error;
     }
 }
