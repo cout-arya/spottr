@@ -38,17 +38,21 @@ const attemptGeneration = async (modelName, messages, retries = 1) => {
             systemInstruction: messages.find(m => m.role === 'system')?.content || '',
             generationConfig: {
                 temperature: 0.7,
-                maxOutputTokens: 2048,
-                responseMimeType: "application/json"
+                maxOutputTokens: 16384,
+                thinkingConfig: {
+                    thinkingBudget: 1024
+                }
             }
         };
 
         const model = genAI.getGenerativeModel(modelConfig);
         
-        // Extract only user messages for the prompt
+        // Ensure we send the user prompt
         const userPrompt = messages.find(m => m.role === 'user')?.content || combinedPrompt;
+        
+        console.log(`[AI] Generating with prompt length: ${userPrompt.length}`);
         const result = await model.generateContent(userPrompt);
-        return result.response.text();
+        const text = result.response.text();
 
         if (!text) throw new Error('Empty response from Gemini');
 
@@ -83,22 +87,34 @@ const tryModels = async (models, messages) => {
 };
 
 // Model priority list - tested and verified working with this API key
-const FAST_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
-const LITE_MODELS = ['gemini-2.5-flash-lite', 'gemini-2.0-flash-lite'];
+const FAST_MODELS = ['gemini-2.5-flash'];
+const LITE_MODELS = ['gemini-2.5-flash'];
 
 /**
  * Extract JSON from potentially markdown-wrapped response
+ * Handles truncated or malformed JSON more gracefully
  */
 const extractJSON = (content) => {
     if (!content) return null;
+    try {
+        // Try direct parse first
+        return JSON.parse(content);
+    } catch (e) {
+        // Continue to cleaning
+    }
+
     const clean = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
     const first = clean.indexOf('{');
     const last = clean.lastIndexOf('}');
+    
     if (first !== -1 && last !== -1) {
+        const potentialJson = clean.substring(first, last + 1);
         try {
-            return JSON.parse(clean.substring(first, last + 1));
+            return JSON.parse(potentialJson);
         } catch (e) {
             console.error('[AI] JSON Parse Error:', e.message);
+            // If it's a structural error, it might be due to truncation or extra text
+            // We'll let the caller handle the null
         }
     }
     return null;
@@ -106,15 +122,21 @@ const extractJSON = (content) => {
 
 const generateDietPlan = async (req, res) => {
     try {
+        console.log("generateDietPlan called!");
         if (!process.env.gemini_key) {
+            console.error("Gemini API Key Missing");
             return res.status(500).json({ message: 'Server Configuration Error: Gemini API Key Missing' });
         }
 
         const user = await User.findById(req.user._id);
-        if (!user) return res.status(404).json({ message: 'User not found' });
+        if (!user) {
+            console.error("User not found!");
+            return res.status(404).json({ message: 'User not found' });
+        }
 
         const profile = user.profile || {};
         const { age, gender, height, weight, dietaryPreference, goals } = profile;
+        console.log("Profile Data:", { age, gender, height, weight, dietaryPreference, goals });
 
         // RAG Logic
         const primaryGoal = (goals || [])[0] || 'General Fitness';
@@ -155,11 +177,19 @@ Output ONLY valid JSON. No markdown. Structure:
             { role: 'user', content: userPrompt }
         ];
 
+        console.log("systemPrompt:", systemPrompt);
+        console.log("userPrompt:", userPrompt);
+        console.log("Attempting to call tryModels...");
+
         const content = await tryModels(FAST_MODELS, messages);
         console.log("Raw Diet Plan Output:", content);
         let dietPlan = extractJSON(content);
 
-        if (!dietPlan) {
+        console.log("Resulting diet plan after extractJSON:", dietPlan);
+
+        // Verify structure - if meals or advice is missing, it's a failed generation
+        if (!dietPlan || !dietPlan.meals || !Array.isArray(dietPlan.meals) || dietPlan.meals.length === 0) {
+            console.warn("Diet plan is null, invalid or truncated. Falling back to default plan.");
             dietPlan = {
                 calories: 2200,
                 protein: 140,
@@ -170,10 +200,11 @@ Output ONLY valid JSON. No markdown. Structure:
                     { name: "Snack", food: "Greek Yogurt", calories: 200, protein: 20, suggestion: "High protein" },
                     { name: "Dinner", food: "Salmon & Asparagus", calories: 600, protein: 40, suggestion: "Light dinner" }
                 ],
-                advice: "Stay consistent with protein! (AI Service Unavailable)"
+                advice: "Stay consistent with protein! (AI Generation was incomplete - using fallback)"
             };
         }
 
+        console.log("Saving diet plan to db...");
         // Save to DB
         try {
             if (!user.plans) user.plans = {};
@@ -246,12 +277,19 @@ const regenerateMeal = async (req, res) => {
 
         const messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }];
 
+        console.log("systemPrompt for regenerateMeal:", systemPrompt);
+        console.log("userPrompt for regenerateMeal:", userPrompt);
+        console.log("Attempting to call tryModels for regenerateMeal...");
+
         const content = await tryModels(FAST_MODELS, messages);
+        console.log("Raw Regenerate Meal Output:", content);
         let newMeal = extractJSON(content);
+
+        console.log("Resulting meal after extractJSON:", newMeal);
 
         // Final Fallback
         if (!newMeal) {
-            console.log('[AI] Using fallback meal data...');
+            console.warn('[AI] Using fallback meal data...');
             newMeal = {
                 name: mealType,
                 food: mealIndex === 0 ? "Oats with Nuts & Berries" :

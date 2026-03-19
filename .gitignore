@@ -28,3 +28,11 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Test and debug files
+test_*.js
+check_*.js
+*_output.txt
+db_error.txt
+out.txt
+embed_out.txt
