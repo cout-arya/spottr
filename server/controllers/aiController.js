@@ -2,6 +2,7 @@ const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 const vectorStore = require('../utils/vectorStore');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const axios = require('axios');
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -61,8 +62,9 @@ const attemptGeneration = async (modelName, messages, retries = 1) => {
     } catch (error) {
         const errMsg = error.message || 'Unknown error';
         console.error(`[AI] Error with ${modelName}: ${errMsg}`);
-        if (retries > 0) {
-            const waitTime = errMsg.includes('429') || errMsg.includes('quota') ? 5000 : 2000;
+        // If it's a specific quota or 429 error, it's better to immediately fall back to OpenRouter!
+        if (retries > 0 && !(errMsg.includes('429') || errMsg.includes('quota') || errMsg.includes('exhausted'))) {
+            const waitTime = 2000;
             console.log(`[AI] Retrying in ${waitTime}ms...`);
             await sleep(waitTime);
             return attemptGeneration(modelName, messages, retries - 1);
@@ -72,12 +74,42 @@ const attemptGeneration = async (modelName, messages, retries = 1) => {
 };
 
 /**
+ * OpenRouter Helper
+ */
+const attemptOpenRouter = async (modelName, messages) => {
+    console.log(`[AI] Attempting generation with OpenRouter: ${modelName}...`);
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) throw new Error('OPENROUTER_API_KEY not configured');
+
+    const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+        model: modelName,
+        messages: messages
+    }, {
+        headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'HTTP-Referer': 'http://localhost:5001',
+            'X-Title': 'Spottr'
+        }
+    });
+    
+    const text = response.data?.choices?.[0]?.message?.content;
+    if (!text) throw new Error('Empty response from OpenRouter');
+    
+    console.log(`[AI] Response received from OpenRouter ${modelName}. Length: ${text.length}`);
+    return text;
+};
+
+/**
  * Try multiple models in sequence until one succeeds
  */
 const tryModels = async (models, messages) => {
     for (let i = 0; i < models.length; i++) {
         try {
-            return await attemptGeneration(models[i], messages, 1);
+            if (models[i].startsWith('openrouter:')) {
+                return await attemptOpenRouter(models[i].split('openrouter:')[1], messages);
+            } else {
+                return await attemptGeneration(models[i], messages, 1);
+            }
         } catch (e) {
             console.warn(`[AI] ${models[i]} failed${i < models.length - 1 ? ', trying next...' : ''}`);
         }
@@ -87,8 +119,8 @@ const tryModels = async (models, messages) => {
 };
 
 // Model priority list - tested and verified working with this API key
-const FAST_MODELS = ['gemini-2.5-flash'];
-const LITE_MODELS = ['gemini-2.5-flash'];
+const FAST_MODELS = ['gemini-2.5-flash', 'openrouter:meta-llama/llama-3.3-70b-instruct', 'openrouter:google/gemini-flash-1.5-8b'];
+const LITE_MODELS = ['gemini-2.5-flash', 'openrouter:google/gemini-flash-1.5-8b'];
 
 /**
  * Extract JSON from potentially markdown-wrapped response
